@@ -1,0 +1,7 @@
+${AnsiColor.BRIGHT_BLUE}.------.    ${AnsiColor.GREEN}        _                          ${AnsiColor.RED}.------.
+${AnsiColor.BRIGHT_BLUE}|K.--. |    ${AnsiColor.GREEN}  _ __ | | __ _ _   _  ___ _ __    ${AnsiColor.RED}|K.--. |
+${AnsiColor.BRIGHT_BLUE}| (\/) |    ${AnsiColor.GREEN} | '_ \| |/ _` | | | |/ _ \ '__|   ${AnsiColor.RED}| (\/) |
+${AnsiColor.BRIGHT_BLUE}| :\/: |    ${AnsiColor.GREEN} | |_) | | (_| | |_| |  __/ |      ${AnsiColor.RED}| :\/: |
+${AnsiColor.BRIGHT_BLUE}| '--'K|    ${AnsiColor.GREEN} | .__/|_|\__,_|\__, |\___|_|      ${AnsiColor.RED}| '--'K|
+${AnsiColor.BRIGHT_BLUE}`------'    ${AnsiColor.GREEN} |_|            |___/              ${AnsiColor.RED}`------'
+
