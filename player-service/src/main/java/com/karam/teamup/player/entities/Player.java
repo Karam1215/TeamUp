@@ -1,30 +1,36 @@
 package com.karam.teamup.player.entities;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.UUID;
 
 @Data
 @Entity
 @Builder
-@Table(name = "player")
 @NoArgsConstructor
 @AllArgsConstructor
+@Table(name = "players")
+@Schema(description = "пользователь Entity")
 public class Player {
     @Id
-    @Column(name = "user_id")
+    @Column(name = "player_id", nullable = false)
     @GeneratedValue(strategy = GenerationType.UUID)
-    UUID userId;
+    @Schema(name = "player_id", example = "72bde859-d59e-4a61-b060-d5fa60426203", required = true, description = "Уникальный идентификатор пользователя.")
+    UUID playerId;
 
-    @Column(name = "user_name")
+    @NotNull
+    @NotBlank
+    @Column(name = "user_name",nullable = false, unique = true)
+    @Size(min = 1, max = 100, message = "Имя должно быть от 1 до 100 символов")
+    @Schema(name = "name", example = "Карам", required = true, description = "Имя пользователя. Должно быть от 1 до 100 символов.")
     private String userName;
 
     @Column(name = "first_name")
@@ -33,16 +39,31 @@ public class Player {
     @Column(name = "last_name")
     private String lastName;
 
+    @Email(message = "Введите действительный адрес электронной почты")
     @Column(name = "email")
+    @Schema(name = "email", example = "2002@hotmail.com", required = true,
+            description = "Электронная почта пользователя. Должна быть уникальной и в правильном формате.")
     private String email;
 
     @Column(name = "phone_number")
+    @Size(max = 18, message = "Номер телефона не должен превышать 18 символов")
+    @Pattern(regexp = "(^\\+7|7|8)[0-9]{10}$|^\\+7\\s?\\(\\d{3}\\)\\s?\\d{3}[-\\s]?\\d{2}[-\\s]?\\d{2}$",
+            message = "Неверный формат номера телефона. Используйте формат +7 (XXX) XXX-XX-XX или 7XXXXXXXXXX.")
+    @Schema(name = "phoneNumber", example = "+7 (123) 456-78-90",
+            description = "Номер телефона пользователя. Должен быть в формате: +7 (XXX) XXX-XX-XX.")
     private String phoneNumber;
 
+    @NotBlank
+    @NotNull
     @Column(name = "password")
+    @Size(min = 7, max = 255, message = "Пароль должна быть от 7 символов")
+    @Schema(name = "password", example = "pass123123", required = true,
+            description = "Пароль пользователя. Должен быть от 7 до 255 символов.")
     private String password;
 
-    @Column(name = "birth_data")
+    @Past
+    @Column(name = "date_of_birth")
+    @Schema(name = "birthday", example = "2002-11-04", description = "Дата рождения пользователя. Формат: yyyy-MM-dd.")
     private LocalDate birthDate;
 
     @Column(name = "gender")
