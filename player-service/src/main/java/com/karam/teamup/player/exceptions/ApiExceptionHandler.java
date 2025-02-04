@@ -13,7 +13,6 @@ import java.util.Map;
 @ControllerAdvice
 public class ApiExceptionHandler {
 
-
         @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationException(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
@@ -50,8 +49,7 @@ public class ApiExceptionHandler {
                 HttpStatus.NOT_FOUND,
                 ZonedDateTime.now()
         );
-        return new ResponseEntity<>(apiException, HttpStatus.NOT_FOUND
-        );
+        return new ResponseEntity<>(apiException, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(value = InvalidCredentialsException.class)
@@ -61,7 +59,16 @@ public class ApiExceptionHandler {
                 HttpStatus.UNAUTHORIZED,
                 ZonedDateTime.now()
         );
-        return new ResponseEntity<>(apiException, HttpStatus.UNAUTHORIZED
+        return new ResponseEntity<>(apiException, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler(value = UserNameNotFoundException.class)
+    public ResponseEntity<Object> emailNotFoundException(UserNameNotFoundException e) {
+        ApiException apiException = new ApiException(
+                e.getMessage(),
+                HttpStatus.UNAUTHORIZED,
+                ZonedDateTime.now()
         );
+        return new ResponseEntity<>(apiException, HttpStatus.UNAUTHORIZED);
     }
 }

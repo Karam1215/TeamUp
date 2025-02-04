@@ -1,6 +1,5 @@
 package com.karam.teamup.player.controllers;
 
-import com.karam.teamup.player.DTO.LoginResponse;
 import com.karam.teamup.player.DTO.PlayerLogin;
 import com.karam.teamup.player.DTO.PlayerRegistration;
 import com.karam.teamup.player.entities.Player;
@@ -12,7 +11,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -41,15 +39,15 @@ public class PlayerController {
             @ApiResponse(responseCode = "200", description = "Login successful"),
             @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid credentials")
     })
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody PlayerLogin playerLogin) {
+    public ResponseEntity<String> login(@Valid @RequestBody PlayerLogin playerLogin) {
         log.info("Received login request for player: {}", playerLogin.email());
         return playerService.login(playerLogin);
     }
 
     @DeleteMapping("/{username}")
-    public ResponseEntity<String> deletePlayer(@Valid @PathVariable("username") String username, Authentication authentication) {
-        log.info("Received request to delete player: {} by user: {}", username, authentication.getName());
-        return playerService.deletePlayerByUsername(username, authentication);
+    public ResponseEntity<String> deletePlayer(@Valid @PathVariable("username") String username) {
+        log.info("Received request to delete player: {}", username);
+        return playerService.deletePlayerByUsername(username);
     }
 
     @GetMapping("/{username}")
