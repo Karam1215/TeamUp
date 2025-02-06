@@ -6,16 +6,20 @@
   <groupId>com.karam.teamup</groupId>
   <artifactId>teamup-backend</artifactId>
   <version>1.0-SNAPSHOT</version>
+  <packaging>pom</packaging>
 
   <name>teamup-backend</name>
   <!-- FIXME change it to the project's website -->
   <url>http://www.example.com</url>
+  <modules>
+    <module>player-service</module>
+  </modules>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>21</maven.compiler.release>
-    <spring.boot.maven.plugin.version>3.4.2</spring.boot.maven.plugin.version>
-    <spring.boot.maven.dependencies.version>3.4.2</spring.boot.maven.dependencies.version>
+    <spring.boot.maven.plugin.version>3.3.4</spring.boot.maven.plugin.version>
+    <spring.boot.maven.dependencies.version>3.3.4</spring.boot.maven.dependencies.version>
     <spring-cloud.version>2024.0.0</spring-cloud.version>
   </properties>
 
@@ -35,7 +39,6 @@
             <type>pom</type>
             <scope>import</scope>
         </dependency>
-
     </dependencies>
   </dependencyManagement>
 
@@ -48,7 +51,11 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-test</artifactId>
     </dependency>
-
+     <dependency>
+    <groupId>org.springdoc</groupId>
+    <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+    <version>2.3.0</version>  <!-- or a later version -->
+  </dependency>
   </dependencies>
 
   <build>

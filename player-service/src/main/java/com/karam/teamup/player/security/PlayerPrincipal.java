@@ -1,5 +1,6 @@
-package com.karam.teamup.player.entities;
+package com.karam.teamup.player.security;
 
+import com.karam.teamup.player.entities.Player;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -7,9 +8,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 
 @RequiredArgsConstructor
+
 public class PlayerPrincipal implements UserDetails {
 
     private final Player player;
@@ -26,7 +27,7 @@ public class PlayerPrincipal implements UserDetails {
 
     @Override
     public String getUsername() {
-        return player.getEmail();
+        return player.getUserName();
     }
 
     @Override

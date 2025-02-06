@@ -1,22 +1,21 @@
 package com.karam.teamup.player.jwt;
 
-import com.karam.teamup.player.entities.PlayerPrincipal;
+import com.karam.teamup.player.security.PlayerPrincipal;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 
+@Slf4j
 @Service
 public class JWTService {
 
@@ -40,7 +39,7 @@ public class JWTService {
                 .add(claims)
                 .subject(username)
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + 60 * 60 * 30))
+                .expiration(new Date(System.currentTimeMillis() + 30 * 60 * 1000))
                 .and()
                 .signWith(getKey())
                 .compact();
@@ -70,11 +69,33 @@ public class JWTService {
                 .getPayload();
     }
 
-    public boolean validateToken(String token, UserDetails userDetails) {
+public boolean validateToken(String token, UserDetails userDetails) {
+    try {
         final String userName = extractUserName(token);
-        return (userName.equals(userDetails.getUsername()) || userName.equals(((PlayerPrincipal) userDetails).getUsername()))
-        && !isTokenExpired(token);
+
+        // Try to cast UserDetails to PlayerPrincipal if it's an instance of PlayerPrincipal
+        if (userDetails instanceof PlayerPrincipal) {
+            return (userName.equals(userDetails.getUsername()) || userName.equals(((PlayerPrincipal) userDetails).getUsername()))
+                && !isTokenExpired(token);
+        } else {
+            // Handle case when UserDetails is not an instance of PlayerPrincipal
+            throw new ClassCastException("UserDetails is not an instance of PlayerPrincipal.");
+        }
+    } catch (ClassCastException e) {
+        // Log and handle the ClassCastException if PlayerPrincipal cast fails
+        log.error("Error during token validation: {}", e.getMessage());
+        return false;
+    } catch (NoSuchElementException e) {
+        // Handle NoSuchElementException if something is missing in the token or userDetails
+        log.error("Error during token validation: {}", e.getMessage());
+        return false;
+    } catch (Exception e) {
+        // Catch any other unexpected exceptions
+        log.error("Unexpected error during token validation: {}", e.getMessage());
+        return false;
     }
+}
+
 
     private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());

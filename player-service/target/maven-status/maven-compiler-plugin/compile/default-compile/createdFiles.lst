@@ -1,0 +1,5 @@
+com/karam/teamup/player/PlayerServiceApplication.class
+com/karam/teamup/player/DTO/PlayerProfileDTO.class
+com/karam/teamup/player/DTO/LoginResponse.class
+com/karam/teamup/player/DTO/PlayerRegistration.class
+com/karam/teamup/player/DTO/PlayerLogin.class

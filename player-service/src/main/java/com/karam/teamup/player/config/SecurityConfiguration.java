@@ -1,13 +1,13 @@
 package com.karam.teamup.player.config;
 
 import com.karam.teamup.player.jwt.JwtFilter;
+import com.karam.teamup.player.security.UserSecurity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -27,17 +27,18 @@ public class SecurityConfiguration {
     private final JwtFilter jwtFilter;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, UserSecurity userSecurity) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth ->
-                        auth.requestMatchers(
+                        auth
+                                .requestMatchers(
                              "/api/v1/player/register",
                              "/api/v1/player/login",
-                                "/api/v1/player/",
                                 "/swagger-ui/**",
                                 "v3/api-docs/**"
                         ).permitAll()
+                                .requestMatchers("/api/v1/player/me").authenticated()
                                 .anyRequest().authenticated()
                 )
                  .sessionManagement(session ->

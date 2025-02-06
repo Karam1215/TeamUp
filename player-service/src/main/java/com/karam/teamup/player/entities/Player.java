@@ -21,7 +21,7 @@ import java.util.UUID;
 @Schema(description = "пользователь Entity")
 public class Player {
     @Id
-    @Column(name = "player_id", nullable = false)
+    @Column(name = "player_id", nullable = false, updatable = false, unique = true)
     @GeneratedValue(strategy = GenerationType.UUID)
     @Schema(name = "player_id", example = "72bde859-d59e-4a61-b060-d5fa60426203", required = true, description = "Уникальный идентификатор пользователя.")
     UUID playerId;
