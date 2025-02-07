@@ -26,7 +26,7 @@ public class Player {
     @Schema(name = "player_id", example = "72bde859-d59e-4a61-b060-d5fa60426203", required = true, description = "Unique player identifier.")
     UUID playerId;
 
-    @NotBlank
+    @NotBlank(message = "username can't be empty")
     @Column(name = "user_name", nullable = false, unique = true)
     @Size(min = 1, max = 100, message = "Username should be between 1 and 100 characters.")
     @Schema(name = "name", example = "Karam", required = true, description = "Username. Should be between 1 and 100 characters.")
@@ -38,19 +38,20 @@ public class Player {
     @Column(name = "last_name")
     private String lastName;
 
+    @NotBlank(message = "Email can't be empty")
     @Email(message = "Please enter a valid email address.")
     @Column(name = "email", unique = true)
-    @Schema(name = "email", example = "2002@hotmail.com", required = true, description = "User's email. Should be unique and in a valid format.")
+    @Schema(name = "email", example = "2002@hotmail.com", required = true, description = "Player's email. Should be unique and in a valid format.")
     private String email;
 
     @Column(name = "phone_number")
     @Size(max = 18, message = "Phone number should not exceed 18 characters.")
     @Pattern(regexp = "(^\\+7|7|8)[0-9]{10}$|^\\+7\\s?\\(\\d{3}\\)\\s?\\d{3}[-\\s]?\\d{2}[-\\s]?\\d{2}$",
             message = "Invalid phone number format. Use the format +7 (XXX) XXX-XX-XX or 7XXXXXXXXXX.")
-    @Schema(name = "phoneNumber", example = "+7 (123) 456-78-90", description = "User's phone number. Should be in the format: +7 (XXX) XXX-XX-XX.")
+    @Schema(name = "phoneNumber", example = "+7 (123) 456-78-90", description = "Player's phone number. Should be in the format: +7 (XXX) XXX-XX-XX.")
     private String phoneNumber;
 
-    @NotBlank
+    @NotBlank(message = "Password can't be empty")
     @Column(name = "password")
     @Size(min = 7, max = 255, message = "Password should be between 7 and 255 characters.")
     @Schema(name = "password", example = "pass123123", required = true, description = "User's password. Should be between 7 and 255 characters.")
@@ -63,13 +64,15 @@ public class Player {
 
     //TODO @Enumerated(EnumType.STRING)
     @Column(name = "gender")
-    @Schema(name = "gender", example = "MALE", description = "User's gender. Examples: 'MALE', 'FEMALE'.")
+    @Schema(name = "gender", example = "MALE", description = "Player's gender. Examples: 'MALE', 'FEMALE'.")
     private String gender;  //TODO Enum for gender
 
     @Column(name = "city")
+    @Schema(name = "gender", example = "MALE", description = "Player's city. Examples: 'Kazan', 'Moscow'.")
     private String city;
 
     @Column(name = "profile_picture")
+    @Schema(name = "gender", example = "MALE", description = "Player's url for profile picture")
     private String profilePicture;
 
     @Column(name = "created_at", updatable = false)

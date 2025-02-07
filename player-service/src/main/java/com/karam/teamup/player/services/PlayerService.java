@@ -253,7 +253,7 @@ public class PlayerService {
         if (!passwordEncoder.matches(changePasswordRequest.currentPassword(), player.getPassword())) {
             throw new InvalidCredentialsException("Invalid password");
         }
-        if (!changePasswordRequest.newPassword().equals(changePasswordRequest.confirmPassword())) {
+        if (!changePasswordRequest.newPassword().equals(changePasswordRequest.passwordConfirmation())) {
             throw new ValidationException("Confirmed password does not match.");
         }
         player.setPassword(passwordEncoder.encode(changePasswordRequest.newPassword()));

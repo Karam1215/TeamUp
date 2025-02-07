@@ -1,9 +1,12 @@
-    package com.karam.teamup.player.DTO;
+package com.karam.teamup.player.DTO;
 
-    import java.time.LocalDate;
-    import java.time.LocalDateTime;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-    public record PlayerProfileDTO(
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+@Schema(name = "DTO for player profile")
+public record PlayerProfileDTO(
         String userName,
         String firstName,
         String lastName,
@@ -14,6 +17,5 @@
         LocalDateTime createdAt,
         String bio,
         String sport
-    ) {
-        
-    }
+) {
+}

@@ -1,17 +1,17 @@
 package com.karam.teamup.player.DTO;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Past;
-
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
+@Schema(description = "DTO for updating players profile")
 public record UpdatePlayerProfileDTO(
 
         String firstName,
 
         String lastName,
 
-        @Past
+        @Past(message = "Invalid date")
         LocalDate birthDate,
 
         String gender,
