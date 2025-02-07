@@ -1,6 +1,7 @@
 package com.karam.teamup.player.exceptions;
 
 import io.jsonwebtoken.security.SignatureException;
+import jakarta.xml.bind.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,12 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<String> handleNotFoundException(ResourceNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
 
     @ExceptionHandler(value = EmailAlreadyExistException.class)
     public ResponseEntity<Object> emailAlreadyExist(EmailAlreadyExistException e) {
@@ -100,10 +107,22 @@ public class GlobalExceptionHandler {
         log.error("Unexpected error occurred: {}", e.getMessage(), e);
 
         ApiException apiException = new ApiException(
-                "An unexpected error occurred. Please try again later.",
+                e.getMessage(),
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 ZonedDateTime.now()
         );
         return new ResponseEntity<>(apiException, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<Object> handleValidationException(ValidationException e) {
+        log.warn("Validation error: {}", e.getMessage());
+
+        ApiException apiException = new ApiException(
+                e.getMessage(),
+                HttpStatus.BAD_REQUEST,
+                ZonedDateTime.now()
+        );
+        return new ResponseEntity<>(apiException, HttpStatus.BAD_REQUEST);
     }
 }

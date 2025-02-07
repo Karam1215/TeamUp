@@ -1,15 +1,12 @@
 package com.karam.teamup.player.services;
 
-
 import com.karam.teamup.player.DTO.*;
 import com.karam.teamup.player.entities.Player;
-import com.karam.teamup.player.exceptions.EmailAlreadyExistException;
-import com.karam.teamup.player.exceptions.InvalidCredentialsException;
-import com.karam.teamup.player.exceptions.PlayerNotFoundException;
-import com.karam.teamup.player.exceptions.UserNameAlreadyExist;
+import com.karam.teamup.player.exceptions.*;
 import com.karam.teamup.player.jwt.JWTService;
 import com.karam.teamup.player.mappers.PlayerProfileMapper;
 import com.karam.teamup.player.repositories.PlayerRepository;
+import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -22,10 +19,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -78,7 +76,7 @@ public class PlayerService {
             Player player = playerRepository.findPlayerByEmail(playerLogin.email())
                     .orElseThrow(() -> {
                         log.warn("Invalid login attempt: {}", playerLogin.email());
-                        return new InvalidCredentialsException("Invalid email or password");
+                        throw new InvalidCredentialsException("Invalid email or password");
                     });
 
             authenticationManager.authenticate(
@@ -95,7 +93,8 @@ public class PlayerService {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid email or password"));
         } catch (Exception e) {
             log.error("Unexpected error during login: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "An unexpected error occurred"));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    Map.of("error", "An unexpected error occurred"));
         }
     }
 
@@ -105,7 +104,7 @@ public class PlayerService {
 
         Player player = playerRepository.findPlayerByUserName(username).orElseThrow(() -> {
             log.warn("Player not found: {}", username);
-            return new PlayerNotFoundException("Player not found");
+            throw new PlayerNotFoundException("Player not found");
         });
 
         log.info("Player profile found: {}", username);
@@ -118,7 +117,7 @@ public class PlayerService {
 
         Player player = playerRepository.findPlayerByUserName(username).orElseThrow(() -> {
             log.warn("Player not found for deletion: {}", username);
-            return new PlayerNotFoundException("Player not found");
+            throw new PlayerNotFoundException("Player not found");
         });
 
         playerRepository.delete(player);
@@ -133,20 +132,21 @@ public class PlayerService {
 
         Player player = playerRepository.findPlayerByUserName(username).orElseThrow(() -> {
             log.warn("Player not found: {}", username);
-            return new PlayerNotFoundException("Player not found");
+            throw new PlayerNotFoundException("Player not found");
         });
 
         log.info("Profile found for player: {}", username);
         return ResponseEntity.ok(playerProfileMapper.toDTO(player));
     }
 
-    public ResponseEntity<String> updatePlayerProfile(UpdatePlayerProfileDTO updatePlayerProfileDTO, Authentication authentication) {
+    public ResponseEntity<String> updatePlayerProfile(UpdatePlayerProfileDTO updatePlayerProfileDTO,
+                                                      Authentication authentication) {
         String username = authentication.getName();
         log.info("Updating profile for player: {}", username);
 
         Player player = playerRepository.findPlayerByUserName(username).orElseThrow(() -> {
             log.warn("Player not found for profile update: {}", username);
-            return new PlayerNotFoundException("Player not found");
+             throw new PlayerNotFoundException("Player not found");
         });
 
         playerProfileMapper.updatePlayerProfile(player, updatePlayerProfileDTO);
@@ -208,13 +208,28 @@ public class PlayerService {
                                                  ChangePasswordRequest changePasswordRequest) {
         Player player = playerRepository.findPlayerByUserName(authentication.getName()).get();
         if (!passwordEncoder.matches(changePasswordRequest.currentPassword(), player.getPassword())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Current password is incorrect.");
+            throw new InvalidCredentialsException("Invalid password");
         }
         if (!changePasswordRequest.newPassword().equals(changePasswordRequest.confirmPassword())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Confirmed password is incorrect.");
+            throw new ValidationException("Confirmed password does not match.");
         }
         player.setPassword(passwordEncoder.encode(changePasswordRequest.newPassword()));
         playerRepository.save(player);
+        log.info("Password changed successfully");
         return ResponseEntity.ok("Password changed successfully.");
+    }
+
+    //TODO make controller for this future
+    public ResponseEntity<List<PlayerProfileDTO>> getAllPlayerByCity(String city) {
+        List<Player> players = playerRepository.findAllByCity(city);
+        log.info("Found {} players", players.size());
+        if (players.isEmpty()) {
+            log.warn("No players found for city: {}", city);
+            throw new ResourceNotFoundException("No players found for city: " + city);
+        }
+        List<PlayerProfileDTO> playerProfileDTOList = players.stream()
+                .map(playerProfileMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(playerProfileDTOList);
     }
 }
