@@ -1,6 +1,7 @@
 package com.karam.teamup.player.mappers;
 
 import com.karam.teamup.player.DTO.PlayerProfileDTO;
+import com.karam.teamup.player.DTO.UpdatePlayerProfileDTO;
 import com.karam.teamup.player.entities.Player;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -9,47 +10,38 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-02-06T06:04:42+0300",
+    date = "2025-02-06T17:48:22+0300",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 23.0.1 (Oracle Corporation)"
 )
 @Component
 public class PlayerProfileMapperImpl implements PlayerProfileMapper {
 
     @Override
-    public void updatePlayerProfile(Player player, PlayerProfileDTO playerProfileDTO) {
-        if ( playerProfileDTO == null ) {
+    public void updatePlayerProfile(Player player, UpdatePlayerProfileDTO updatePlayerProfileDTO) {
+        if ( updatePlayerProfileDTO == null ) {
             return;
         }
 
-        if ( playerProfileDTO.userName() != null ) {
-            player.setUserName( playerProfileDTO.userName() );
+        if ( updatePlayerProfileDTO.firstName() != null ) {
+            player.setFirstName( updatePlayerProfileDTO.firstName() );
         }
-        if ( playerProfileDTO.firstName() != null ) {
-            player.setFirstName( playerProfileDTO.firstName() );
+        if ( updatePlayerProfileDTO.lastName() != null ) {
+            player.setLastName( updatePlayerProfileDTO.lastName() );
         }
-        if ( playerProfileDTO.lastName() != null ) {
-            player.setLastName( playerProfileDTO.lastName() );
+        if ( updatePlayerProfileDTO.birthDate() != null ) {
+            player.setBirthDate( updatePlayerProfileDTO.birthDate() );
         }
-        if ( playerProfileDTO.birthDate() != null ) {
-            player.setBirthDate( playerProfileDTO.birthDate() );
+        if ( updatePlayerProfileDTO.gender() != null ) {
+            player.setGender( updatePlayerProfileDTO.gender() );
         }
-        if ( playerProfileDTO.gender() != null ) {
-            player.setGender( playerProfileDTO.gender() );
+        if ( updatePlayerProfileDTO.city() != null ) {
+            player.setCity( updatePlayerProfileDTO.city() );
         }
-        if ( playerProfileDTO.city() != null ) {
-            player.setCity( playerProfileDTO.city() );
+        if ( updatePlayerProfileDTO.bio() != null ) {
+            player.setBio( updatePlayerProfileDTO.bio() );
         }
-        if ( playerProfileDTO.profilePicture() != null ) {
-            player.setProfilePicture( playerProfileDTO.profilePicture() );
-        }
-        if ( playerProfileDTO.createdAt() != null ) {
-            player.setCreatedAt( playerProfileDTO.createdAt() );
-        }
-        if ( playerProfileDTO.bio() != null ) {
-            player.setBio( playerProfileDTO.bio() );
-        }
-        if ( playerProfileDTO.sport() != null ) {
-            player.setSport( playerProfileDTO.sport() );
+        if ( updatePlayerProfileDTO.sport() != null ) {
+            player.setSport( updatePlayerProfileDTO.sport() );
         }
     }
 

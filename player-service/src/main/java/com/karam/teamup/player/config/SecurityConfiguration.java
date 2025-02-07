@@ -9,6 +9,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.web.WebSecurityConfigurer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -17,11 +18,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor()
-public class SecurityConfiguration {
+public class SecurityConfiguration implements WebMvcConfigurer{
 
     private final UserDetailsService userDetailsService;
     private final JwtFilter jwtFilter;
@@ -32,13 +35,15 @@ public class SecurityConfiguration {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth ->
                         auth
+
                                 .requestMatchers(
-                             "/api/v1/player/register",
-                             "/api/v1/player/login",
-                                "/swagger-ui/**",
-                                "v3/api-docs/**"
+                                        "/api/v1/auth/register",
+                                        "/api/v1/auth/login",
+                                        "/swagger-ui/**",
+                                        "v3/api-docs/**",
+                                        "/uploads/**"
                         ).permitAll()
-                                .requestMatchers("/api/v1/player/me").authenticated()
+                         //       .requestMatchers("/api/v1/player/me").authenticated()
                                 .anyRequest().authenticated()
                 )
                  .sessionManagement(session ->
@@ -62,5 +67,11 @@ public class SecurityConfiguration {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
+    }
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler("/uploads/**")
+                .addResourceLocations("file:/home/karam/IdeaProjects/TeamUp/player-service/uploads/");  // Adjust path if necessary
     }
 }

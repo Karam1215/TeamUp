@@ -6,16 +6,15 @@ import jakarta.validation.constraints.Size;
 
 public record PlayerRegistration(
 
-        @NotBlank(message = "Username cannot be empty")
-        @Size(min = 1, max = 100, message = "Имя должно быть от 1 до 100 символов")
-        String userName,
+        @NotBlank(message = "Username is required")
+    String userName,
 
-        @NotBlank(message = "Email cannot be empty")
-        @Email(message = "Введите действительный адрес электронной почты")
-        String email,
+    @NotBlank(message = "Email is required")
+    @Email(message = "Invalid email format")
+    String email,
 
-        @NotBlank(message = "Password cannot be empty")
-        @Size(min = 7, max = 255, message = "Пароль должна быть от 7 символов")
-        String password
+    @NotBlank(message = "Password is required")
+    @Size(min = 7, max = 255, message = "Password must be 7-255 characters")
+    String password
 ) {
 }

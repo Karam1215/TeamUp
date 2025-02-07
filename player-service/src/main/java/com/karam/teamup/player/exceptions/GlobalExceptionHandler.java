@@ -14,19 +14,25 @@ import java.util.Map;
 
 @Slf4j
 @ControllerAdvice
-public class ApiExceptionHandler {
+public class GlobalExceptionHandler {
 
-        @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationException(MethodArgumentNotValidException ex) {
+        log.warn("Validation error: {} fields failed validation", ex.getBindingResult().getFieldErrors().size());
+
         Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(error ->
-                errors.put(error.getField(), error.getDefaultMessage()));
+        ex.getBindingResult().getFieldErrors().forEach(error -> {
+            log.warn("Validation failed for field '{}': {}", error.getField(), error.getDefaultMessage());
+            errors.put(error.getField(), error.getDefaultMessage());
+        });
 
         return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(value = EmailAlreadyExistException.class)
     public ResponseEntity<Object> emailAlreadyExist(EmailAlreadyExistException e) {
+        log.warn("Email already exists: {}", e.getMessage());
+
         ApiException apiException = new ApiException(
                 e.getMessage(),
                 HttpStatus.CONFLICT,
@@ -37,6 +43,8 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(value = UserNameAlreadyExist.class)
     public ResponseEntity<Object> nameAlreadyExist(UserNameAlreadyExist e) {
+        log.warn("Username already exists: {}", e.getMessage());
+
         ApiException apiException = new ApiException(
                 e.getMessage(),
                 HttpStatus.CONFLICT,
@@ -47,6 +55,8 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(value = PlayerNotFoundException.class)
     public ResponseEntity<Object> playerNotFound(PlayerNotFoundException e) {
+        log.warn("Player not found: {}", e.getMessage());
+
         ApiException apiException = new ApiException(
                 e.getMessage(),
                 HttpStatus.NOT_FOUND,
@@ -56,7 +66,9 @@ public class ApiExceptionHandler {
     }
 
     @ExceptionHandler(value = InvalidCredentialsException.class)
-    public ResponseEntity<Object> playerNotFound(InvalidCredentialsException e) {
+    public ResponseEntity<Object> invalidCredentials(InvalidCredentialsException e) {
+        log.warn("Invalid login attempt: {}", e.getMessage());
+
         ApiException apiException = new ApiException(
                 e.getMessage(),
                 HttpStatus.UNAUTHORIZED,
@@ -66,7 +78,9 @@ public class ApiExceptionHandler {
     }
 
     @ExceptionHandler(value = UserNameNotFoundException.class)
-    public ResponseEntity<Object> emailNotFoundException(UserNameNotFoundException e) {
+    public ResponseEntity<Object> userNameNotFoundException(UserNameNotFoundException e) {
+        log.warn("Username not found: {}", e.getMessage());
+
         ApiException apiException = new ApiException(
                 e.getMessage(),
                 HttpStatus.UNAUTHORIZED,
@@ -79,5 +93,17 @@ public class ApiExceptionHandler {
     public ResponseEntity<String> handleInvalidJwtSignature(SignatureException ex) {
         log.warn("JWT signature validation failed: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid JWT signature. Please log in again.");
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Object> handleGenericException(Exception e) {
+        log.error("Unexpected error occurred: {}", e.getMessage(), e);
+
+        ApiException apiException = new ApiException(
+                "An unexpected error occurred. Please try again later.",
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                ZonedDateTime.now()
+        );
+        return new ResponseEntity<>(apiException, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

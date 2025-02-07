@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS players (
     profile_picture VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     bio TEXT,
-    sport VARCHAR(50)
+    sport VARCHAR(50),
+    is_verified BOOLEAN DEFAULT FALSE
     --reviews INTEGER DEFAULT 0
 );
 
