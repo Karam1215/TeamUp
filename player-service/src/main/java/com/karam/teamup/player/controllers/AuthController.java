@@ -14,10 +14,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.Map;
 
 @Slf4j
@@ -40,6 +38,22 @@ public class AuthController {
         return playerService.createPlayer(playerRegistration);
     }
 
+    @GetMapping("/verify")
+    @Operation(
+            summary = "Подтвердить учетную запись по токену",
+            description = "Этот эндпоинт позволяет пользователю подтвердить свою учетную" +
+                    " запись с помощью токена, который был отправлен на почту."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Учетная запись успешно подтверждена."),
+            @ApiResponse(responseCode = "400", description = "Токен неверен или срок его действия истек."),
+            @ApiResponse(responseCode = "404", description = "Пользователь с таким токеном не найден."),
+    })
+    public ResponseEntity<String> verifyAccount(@RequestParam("token") String token) {
+        log.info("Verifying account token: {}", token);
+        return playerService.verifyAccount(token);
+    }
+
     @PostMapping("/login")
     @Operation(summary = "User login", description = "Authenticates the player and returns a JWT token.")
     @ApiResponses(value = {
@@ -53,5 +67,20 @@ public class AuthController {
     public ResponseEntity<?> login(@Valid @RequestBody PlayerLogin playerLogin) {
         log.info("Login attempt for: {}", playerLogin.email());
         return playerService.login(playerLogin);
+    }
+
+    @PostMapping("/resend-token")
+    @Operation(
+            summary = "Запросить новый токен для подтверждения почты",
+            description = "Этот эндпоинт позволяет пользователю запросить новый токен для подтверждения учетной записи."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Новый токен подтверждения отправлен на вашу почту."),
+            @ApiResponse(responseCode = "400", description = "Неверный email или другие ошибки при запросе токена."),
+            @ApiResponse(responseCode = "404", description = "Пользователь с таким email не найден."),
+    })
+    //TODO make it public or authenticated in security config
+    public ResponseEntity<String> resendVerificationToken(@RequestParam("email") String email) {
+        return playerService.resendVerificationToken(email);
     }
 }

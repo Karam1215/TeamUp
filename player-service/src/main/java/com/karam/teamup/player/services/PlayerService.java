@@ -1,6 +1,7 @@
 package com.karam.teamup.player.services;
 
 import com.karam.teamup.player.DTO.*;
+import com.karam.teamup.player.entities.ConfirmationToken;
 import com.karam.teamup.player.entities.Player;
 import com.karam.teamup.player.exceptions.*;
 import com.karam.teamup.player.jwt.JWTService;
@@ -15,12 +16,14 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -44,9 +47,7 @@ public class PlayerService {
 
     public ResponseEntity<String> createPlayer(PlayerRegistration playerRegistration) {
         log.info("Attempting to register player: {}", playerRegistration.userName());
-        System.out.println(playerRegistration.userName());
-        System.out.println(playerRegistration.password());
-        System.out.println(playerRegistration.email());
+
         if (playerRepository.findPlayerByEmail(playerRegistration.email()).isPresent()) {
             log.warn("Email already exists: {}", playerRegistration.email());
             throw new EmailAlreadyExistException("Email already exists");
@@ -64,9 +65,51 @@ public class PlayerService {
                 .build();
 
         playerRepository.save(player);
+        ConfirmationToken token = confirmationTokenService.createToken(player);
+
+        emailService.sendVerificationMail(playerRegistration.email(),
+                                            player.getUserName(),
+                                            token.getToken());
 
         log.info("Player successfully registered: {}", player.getUserName());
-        return new ResponseEntity<>("Success", HttpStatus.CREATED);
+
+        return new ResponseEntity<>("🎊 Welcome aboard! Your account is created." +
+                " Please check your email to verify and start your journey! 🚀", HttpStatus.CREATED);
+    }
+
+    public ResponseEntity<String> verifyAccount(String token) {
+        ConfirmationToken confirmationToken = confirmationTokenService.getToken(token).orElseThrow(
+                () -> new InvalidTokenException("Invalid token")
+        );
+
+        if (confirmationToken.getExpiresAt().isBefore(LocalDateTime.now())){
+            throw new TokenExpiredException("Срок действия токена истёк. Пожалуйста, запросите новую ссылку для подтверждения.");
+        }
+
+        if (confirmationToken.getConfirmedAt() != null) {
+            throw new AccountAlreadyVerifiedException("Аккаунт уже подтверждён.");
+        }
+
+        confirmationTokenService.setConfirmedAt(token);
+
+        Player player = confirmationToken.getPlayer();
+        player.setIsVerified(true);
+        playerRepository.save(player);
+
+        return ResponseEntity.ok("Account is verified!");
+    }
+
+    @Transactional
+    public ResponseEntity<String> resendVerificationToken(String email){
+        Player player = playerRepository.findPlayerByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found."));
+        if (player.getIsVerified()) {
+            throw new AccountAlreadyVerifiedException("Аккаунт уже подтверждён.");
+        }
+        confirmationTokenService.invalidateExistingTokens(player);
+        ConfirmationToken newToken = confirmationTokenService.createToken(player);
+        emailService.sendVerificationMail(player.getEmail(), player.getUserName(), newToken.getToken());
+        return ResponseEntity.ok("we sent an email to verify your account.");
     }
 
     public ResponseEntity<?> login(PlayerLogin playerLogin) {

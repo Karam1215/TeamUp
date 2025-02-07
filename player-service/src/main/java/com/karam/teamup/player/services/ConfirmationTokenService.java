@@ -28,6 +28,7 @@ public class ConfirmationTokenService {
                 .token(token)
                 .createdAt(createdAt)
                 .expiresAt(expiresAt)
+                .player(player)
                 .build();
         confirmationTokenRepository.save(confirmationToken);
         log.info("Confirmation token created: {}", confirmationToken);

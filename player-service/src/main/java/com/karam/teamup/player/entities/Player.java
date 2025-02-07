@@ -7,7 +7,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -86,6 +85,7 @@ public class Player {
     @Schema(name = "sport", example = "football", description = "Sport that the user is interested in.")
     private String sport;
 
+    @Builder.Default
     @Column(name = "is_verified")
     @Schema(name = "isVerified", example = "false",
             description = "verification for email address")
