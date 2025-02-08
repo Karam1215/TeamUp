@@ -27,9 +27,9 @@ public class UserSecurity implements AuthorizationManager<RequestAuthorizationCo
 
     private String getUsernameFromAuthentication(Authentication authentication) {
         // Assuming PlayerPrincipal has a getUsername() method
-        if (authentication != null && authentication.getPrincipal() instanceof PlayerPrincipal) {
-            PlayerPrincipal playerPrincipal = (PlayerPrincipal) authentication.getPrincipal();
-            return playerPrincipal.getUsername(); // Get username from PlayerPrincipal
+        if (authentication != null && authentication.getPrincipal() instanceof PlayerPrincipal playerPrincipal) {
+            authentication.getPrincipal();
+            return playerPrincipal.getUsername();
         }
         return null;
     }

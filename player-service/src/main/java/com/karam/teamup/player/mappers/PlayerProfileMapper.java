@@ -1,8 +1,8 @@
 package com.karam.teamup.player.mappers;
 
 
-import com.karam.teamup.player.DTO.PlayerProfileDTO;
-import com.karam.teamup.player.DTO.UpdatePlayerProfileDTO;
+import com.karam.teamup.player.dto.PlayerProfileDTO;
+import com.karam.teamup.player.dto.UpdatePlayerProfileDTO;
 import com.karam.teamup.player.entities.Player;
 import org.mapstruct.*;
 

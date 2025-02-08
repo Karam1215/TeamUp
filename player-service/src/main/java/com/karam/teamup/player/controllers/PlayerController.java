@@ -1,6 +1,6 @@
 package com.karam.teamup.player.controllers;
 
-import com.karam.teamup.player.DTO.*;
+import com.karam.teamup.player.dto.*;
 import com.karam.teamup.player.services.PlayerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

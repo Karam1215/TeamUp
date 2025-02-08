@@ -40,60 +40,60 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Object> emailAlreadyExist(EmailAlreadyExistException e) {
         log.warn("Email already exists: {}", e.getMessage());
 
-        ApiException apiException = new ApiException(
+        CustomizeException customizeException = new CustomizeException(
                 e.getMessage(),
                 HttpStatus.CONFLICT,
                 ZonedDateTime.now()
         );
-        return new ResponseEntity<>(apiException, HttpStatus.CONFLICT);
+        return new ResponseEntity<>(customizeException, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(value = UserNameAlreadyExist.class)
     public ResponseEntity<Object> nameAlreadyExist(UserNameAlreadyExist e) {
         log.warn("Username already exists: {}", e.getMessage());
 
-        ApiException apiException = new ApiException(
+        CustomizeException customizeException = new CustomizeException(
                 e.getMessage(),
                 HttpStatus.CONFLICT,
                 ZonedDateTime.now()
         );
-        return new ResponseEntity<>(apiException, HttpStatus.CONFLICT);
+        return new ResponseEntity<>(customizeException, HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(value = PlayerNotFoundException.class)
     public ResponseEntity<Object> playerNotFound(PlayerNotFoundException e) {
         log.warn("Player not found: {}", e.getMessage());
 
-        ApiException apiException = new ApiException(
+        CustomizeException customizeException = new CustomizeException(
                 e.getMessage(),
                 HttpStatus.NOT_FOUND,
                 ZonedDateTime.now()
         );
-        return new ResponseEntity<>(apiException, HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(customizeException, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(value = InvalidCredentialsException.class)
     public ResponseEntity<Object> invalidCredentials(InvalidCredentialsException e) {
         log.warn("Invalid login attempt: {}", e.getMessage());
 
-        ApiException apiException = new ApiException(
+        CustomizeException customizeException = new CustomizeException(
                 e.getMessage(),
                 HttpStatus.UNAUTHORIZED,
                 ZonedDateTime.now()
         );
-        return new ResponseEntity<>(apiException, HttpStatus.UNAUTHORIZED);
+        return new ResponseEntity<>(customizeException, HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(value = UserNameNotFoundException.class)
     public ResponseEntity<Object> userNameNotFoundException(UserNameNotFoundException e) {
         log.warn("Username not found: {}", e.getMessage());
 
-        ApiException apiException = new ApiException(
+        CustomizeException customizeException = new CustomizeException(
                 e.getMessage(),
                 HttpStatus.UNAUTHORIZED,
                 ZonedDateTime.now()
         );
-        return new ResponseEntity<>(apiException, HttpStatus.UNAUTHORIZED);
+        return new ResponseEntity<>(customizeException, HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(SignatureException.class)
@@ -106,23 +106,23 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Object> handleGenericException(Exception e) {
         log.error("Unexpected error occurred: {}", e.getMessage(), e);
 
-        ApiException apiException = new ApiException(
+        CustomizeException customizeException = new CustomizeException(
                 e.getMessage(),
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 ZonedDateTime.now()
         );
-        return new ResponseEntity<>(apiException, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(customizeException, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<Object> handleValidationException(ValidationException e) {
         log.warn("Validation error: {}", e.getMessage());
 
-        ApiException apiException = new ApiException(
+        CustomizeException customizeException = new CustomizeException(
                 e.getMessage(),
                 HttpStatus.BAD_REQUEST,
                 ZonedDateTime.now()
         );
-        return new ResponseEntity<>(apiException, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(customizeException, HttpStatus.BAD_REQUEST);
     }
 }

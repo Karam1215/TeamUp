@@ -1,7 +1,7 @@
 package com.karam.teamup.player.controllers;
 
-import com.karam.teamup.player.DTO.PlayerLogin;
-import com.karam.teamup.player.DTO.PlayerRegistration;
+import com.karam.teamup.player.dto.PlayerLogin;
+import com.karam.teamup.player.dto.PlayerRegistration;
 import com.karam.teamup.player.services.PlayerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -64,7 +64,7 @@ public class AuthController {
             )),
             @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid credentials", content = @Content)
     })
-    public ResponseEntity<?> login(@Valid @RequestBody PlayerLogin playerLogin) {
+    public ResponseEntity<Map<String,String>> login(@Valid @RequestBody PlayerLogin playerLogin) {
         log.info("Login attempt for: {}", playerLogin.email());
         return playerService.login(playerLogin);
     }
@@ -79,6 +79,7 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Неверный email или другие ошибки при запросе токена."),
             @ApiResponse(responseCode = "404", description = "Пользователь с таким email не найден."),
     })
+
     //TODO make it public or authenticated in security config
     public ResponseEntity<String> resendVerificationToken(@RequestParam("email") String email) {
         return playerService.resendVerificationToken(email);

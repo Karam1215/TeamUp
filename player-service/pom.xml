@@ -72,11 +72,16 @@
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct-processor</artifactId>
-            <version>1.5.5.Final</version>
+            <version>1.6.2</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <version>0.8.11</version>
         </dependency>
     </dependencies>
 
@@ -92,7 +97,25 @@
                 <schemas>public</schemas>
             </configuration>
         </plugin>
-    </plugins>
-</build>
-
+        <plugin>
+             <groupId>org.jacoco</groupId>
+             <artifactId>jacoco-maven-plugin</artifactId>
+             <version>0.8.11</version>
+             <executions>
+                <execution>
+                   <id>prepare-agent</id>
+                   <goals>
+                      <goal>prepare-agent</goal>
+                   </goals>
+                </execution>
+                <execution>
+                   <id>report</id>
+                   <goals>
+                      <goal>report</goal>
+                   </goals>
+                </execution>
+             </executions>
+          </plugin>
+        </plugins>
+    </build>
 </project>

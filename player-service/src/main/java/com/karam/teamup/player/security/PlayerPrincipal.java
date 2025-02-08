@@ -13,7 +13,7 @@ import java.util.Collections;
 
 public class PlayerPrincipal implements UserDetails {
 
-    private final Player player;
+    private final transient Player player;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

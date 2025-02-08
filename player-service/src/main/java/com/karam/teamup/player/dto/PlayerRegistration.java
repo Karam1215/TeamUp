@@ -1,12 +1,16 @@
-package com.karam.teamup.player.DTO;
+package com.karam.teamup.player.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-@Schema(name = "DTO for player login")
-public record PlayerLogin(
+@Schema(description = "DTO for player registration")
+public record PlayerRegistration(
+        @NotBlank(message = "Username can't be empty")
+        @Size(min = 1, max = 100, message = "Username must be between 1 and 100 characters")
+        @Schema(description = "userName", example = "karam", requiredMode = Schema.RequiredMode.REQUIRED)
+        String userName,
 
         @NotBlank(message = "Email can't be empty")
         @Email(message = "Invalid email format")

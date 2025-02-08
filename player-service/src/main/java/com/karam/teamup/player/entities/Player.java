@@ -23,13 +23,13 @@ public class Player {
     @Id
     @Column(name = "player_id", nullable = false, updatable = false, unique = true)
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Schema(name = "player_id", example = "72bde859-d59e-4a61-b060-d5fa60426203", required = true, description = "Unique player identifier.")
+    @Schema(name = "player_id", example = "72bde859-d59e-4a61-b060-d5fa60426203", requiredMode = Schema.RequiredMode.REQUIRED, description = "Unique player identifier.")
     UUID playerId;
 
     @NotBlank(message = "username can't be empty")
     @Column(name = "user_name", nullable = false, unique = true)
     @Size(min = 1, max = 100, message = "Username should be between 1 and 100 characters.")
-    @Schema(name = "name", example = "Karam", required = true, description = "Username. Should be between 1 and 100 characters.")
+    @Schema(name = "name", example = "Karam", requiredMode = Schema.RequiredMode.REQUIRED, description = "Username. Should be between 1 and 100 characters.")
     private String userName;
 
     @Column(name = "first_name")
@@ -41,20 +41,20 @@ public class Player {
     @NotBlank(message = "Email can't be empty")
     @Email(message = "Please enter a valid email address.")
     @Column(name = "email", unique = true)
-    @Schema(name = "email", example = "2002@hotmail.com", required = true, description = "Player's email. Should be unique and in a valid format.")
+    @Schema(name = "email", example = "2002@hotmail.com", requiredMode = Schema.RequiredMode.REQUIRED, description = "Player's email. Should be unique and in a valid format.")
     private String email;
 
     @Column(name = "phone_number")
     @Size(max = 18, message = "Phone number should not exceed 18 characters.")
-    @Pattern(regexp = "(^\\+7|7|8)[0-9]{10}$|^\\+7\\s?\\(\\d{3}\\)\\s?\\d{3}[-\\s]?\\d{2}[-\\s]?\\d{2}$",
-            message = "Invalid phone number format. Use the format +7 (XXX) XXX-XX-XX or 7XXXXXXXXXX.")
+    @Pattern(regexp = "^([+78])\\d{10}$", message = "Phone number must be in the format +7XXXXXXXXXX or 7XXXXXXXXXX.")
+    @Pattern(regexp = "^\\+7\\s?\\(\\d{3}\\)\\s?\\d{3}[-\\s]?\\d{2}[-\\s]?\\d{2}$", message = "Phone number must be in the format +7 (XXX) XXX-XX-XX.")
     @Schema(name = "phoneNumber", example = "+7 (123) 456-78-90", description = "Player's phone number. Should be in the format: +7 (XXX) XXX-XX-XX.")
     private String phoneNumber;
 
     @NotBlank(message = "Password can't be empty")
     @Column(name = "password")
     @Size(min = 7, max = 255, message = "Password should be between 7 and 255 characters.")
-    @Schema(name = "password", example = "pass123123", required = true, description = "User's password. Should be between 7 and 255 characters.")
+    @Schema(name = "password", example = "pass123123", requiredMode = Schema.RequiredMode.REQUIRED, description = "User's password. Should be between 7 and 255 characters.")
     private String password;
 
     @Past

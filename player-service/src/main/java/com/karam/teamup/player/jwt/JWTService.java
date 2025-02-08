@@ -21,14 +21,14 @@ public class JWTService {
 
     private String secretKey = "";
 
-    public JWTService() {
+    public JWTService() throws NoSuchAlgorithmException {
 
         try {
             KeyGenerator keyGen = KeyGenerator.getInstance("HmacSHA256");
             SecretKey sk = keyGen.generateKey();
             secretKey = Base64.getEncoder().encodeToString(sk.getEncoded());
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
+            throw new NoSuchAlgorithmException("unable to generate secret key");
         }
     }
 
@@ -73,12 +73,10 @@ public boolean validateToken(String token, UserDetails userDetails) {
     try {
         final String userName = extractUserName(token);
 
-        // Try to cast UserDetails to PlayerPrincipal if it's an instance of PlayerPrincipal
-        if (userDetails instanceof PlayerPrincipal) {
-            return (userName.equals(userDetails.getUsername()) || userName.equals(((PlayerPrincipal) userDetails).getUsername()))
+        if (userDetails instanceof PlayerPrincipal playerPrincipal) {
+            return (userName.equals(playerPrincipal.getUsername()) || userName.equals(playerPrincipal.getUsername()))
                 && !isTokenExpired(token);
         } else {
-            // Handle case when UserDetails is not an instance of PlayerPrincipal
             throw new ClassCastException("UserDetails is not an instance of PlayerPrincipal.");
         }
     } catch (ClassCastException e) {

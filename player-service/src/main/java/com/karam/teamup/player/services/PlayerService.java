@@ -1,6 +1,6 @@
 package com.karam.teamup.player.services;
 
-import com.karam.teamup.player.DTO.*;
+import com.karam.teamup.player.dto.*;
 import com.karam.teamup.player.entities.ConfirmationToken;
 import com.karam.teamup.player.entities.Player;
 import com.karam.teamup.player.exceptions.*;
@@ -23,6 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
+import java.rmi.UnexpectedException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +45,8 @@ public class PlayerService {
     private final ConfirmationTokenService confirmationTokenService;
 
     private static final String UPLOAD_DIR = "/home/karam/IdeaProjects/TeamUp/player-service/uploads";
-    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    private static final long MAX_FILE_SIZE = 5 * 1024L * 1024; // 5MB
+    public static final String PLAYER_NOT_FOUND = "Player not found";
 
     public ResponseEntity<String> createPlayer(PlayerRegistration playerRegistration) {
         log.info("Attempting to register player: {}", playerRegistration.userName());
@@ -103,7 +106,8 @@ public class PlayerService {
     public ResponseEntity<String> resendVerificationToken(String email){
         Player player = playerRepository.findPlayerByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found."));
-        if (player.getIsVerified()) {
+        Boolean isVerified = player.getIsVerified();
+        if (Boolean.TRUE.equals(isVerified)) {
             throw new AccountAlreadyVerifiedException("Аккаунт уже подтверждён.");
         }
         confirmationTokenService.invalidateExistingTokens(player);
@@ -112,14 +116,14 @@ public class PlayerService {
         return ResponseEntity.ok("we sent an email to verify your account.");
     }
 
-    public ResponseEntity<?> login(PlayerLogin playerLogin) {
+    public ResponseEntity<Map<String,String>> login(PlayerLogin playerLogin) {
         log.info("Attempting login for email: {}", playerLogin.email());
 
         try {
             Player player = playerRepository.findPlayerByEmail(playerLogin.email())
                     .orElseThrow(() -> {
                         log.warn("Invalid login attempt: {}", playerLogin.email());
-                        throw new InvalidCredentialsException("Invalid email or password");
+                        return new InvalidCredentialsException("Invalid email or password");
                     });
 
             authenticationManager.authenticate(
@@ -133,11 +137,10 @@ public class PlayerService {
 
         } catch (AuthenticationException e) {
             log.warn("Authentication failed for email: {}", playerLogin.email());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid email or password"));
+            throw new InvalidCredentialsException("Invalid email or password");
         } catch (Exception e) {
             log.error("Unexpected error during login: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
-                    Map.of("error", "An unexpected error occurred"));
+            throw new IllegalArgumentException("Unexpected error during login");
         }
     }
 
@@ -147,7 +150,7 @@ public class PlayerService {
 
         Player player = playerRepository.findPlayerByUserName(username).orElseThrow(() -> {
             log.warn("Player not found: {}", username);
-            throw new PlayerNotFoundException("Player not found");
+            throw new PlayerNotFoundException(PLAYER_NOT_FOUND);
         });
 
         log.info("Player profile found: {}", username);
@@ -160,7 +163,7 @@ public class PlayerService {
 
         Player player = playerRepository.findPlayerByUserName(username).orElseThrow(() -> {
             log.warn("Player not found for deletion: {}", username);
-            throw new PlayerNotFoundException("Player not found");
+            throw new PlayerNotFoundException(PLAYER_NOT_FOUND);
         });
 
         playerRepository.delete(player);
@@ -175,7 +178,7 @@ public class PlayerService {
 
         Player player = playerRepository.findPlayerByUserName(username).orElseThrow(() -> {
             log.warn("Player not found: {}", username);
-            throw new PlayerNotFoundException("Player not found");
+            throw new PlayerNotFoundException(PLAYER_NOT_FOUND);
         });
 
         log.info("Profile found for player: {}", username);
@@ -189,7 +192,7 @@ public class PlayerService {
 
         Player player = playerRepository.findPlayerByUserName(username).orElseThrow(() -> {
             log.warn("Player not found for profile update: {}", username);
-             throw new PlayerNotFoundException("Player not found");
+             throw new PlayerNotFoundException(PLAYER_NOT_FOUND);
         });
 
         playerProfileMapper.updatePlayerProfile(player, updatePlayerProfileDTO);
@@ -205,7 +208,7 @@ public class PlayerService {
 
         Player player = playerRepository.findPlayerByUserName(username).orElseThrow(() -> {
             log.warn("Player not found for profile picture upload: {}", username);
-            return new PlayerNotFoundException("Player not found");
+            return new PlayerNotFoundException(PLAYER_NOT_FOUND);
         });
 
         String contentType = file.getContentType();
@@ -230,7 +233,7 @@ public class PlayerService {
                 ? originalFilename.substring(originalFilename.lastIndexOf("."))
                 : ".jpg";
 
-        String filePath = UPLOAD_DIR + "/" + player.getPlayerId() + extension;
+        String filePath = String.valueOf(Paths.get(UPLOAD_DIR, player.getPlayerId() + extension));
         File destinationFile = new File(filePath);
 
         try {
@@ -272,7 +275,7 @@ public class PlayerService {
         }
         List<PlayerProfileDTO> playerProfileDTOList = players.stream()
                 .map(playerProfileMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
         return ResponseEntity.ok(playerProfileDTOList);
     }
 }

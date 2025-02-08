@@ -1,4 +1,4 @@
-package com.karam.teamup.player.DTO;
+package com.karam.teamup.player.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

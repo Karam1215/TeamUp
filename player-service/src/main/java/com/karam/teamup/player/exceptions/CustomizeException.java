@@ -1,20 +1,16 @@
 package com.karam.teamup.player.exceptions;
 
-import lombok.Data;
+import lombok.Getter;
 import org.springframework.http.HttpStatus;
-
 import java.time.ZonedDateTime;
 
-@Data
-public class ApiException {
-    private final String message;
+@Getter
+public class CustomizeException extends RuntimeException {
     private final HttpStatus httpStatus;
     private final ZonedDateTime timestamp;
 
-    public ApiException(String message,
-                        HttpStatus httpStatus,
-                        ZonedDateTime timestamp) {
-        this.message = message;
+    public CustomizeException(String message, HttpStatus httpStatus, ZonedDateTime timestamp) {
+        super(message);
         this.httpStatus = httpStatus;
         this.timestamp = timestamp;
     }
