@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:latest
+    ports:
+      - "5436:5432"
+    environment:
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    networks:
+      - web
+
+networks:
+  web:
+    name: web
