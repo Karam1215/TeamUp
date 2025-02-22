@@ -64,11 +64,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Object> playerNotFound(PlayerNotFoundException e) {
         log.warn("Player not found: {}", e.getMessage());
 
+        // Create a CustomizeException object with a user-friendly message
         CustomizeException customizeException = new CustomizeException(
-                e.getMessage(),
+                "Player not found with the given identifier", // A more user-friendly message
                 HttpStatus.NOT_FOUND,
                 ZonedDateTime.now()
         );
+
+        // Optionally, log the stack trace for internal purposes
+        log.warn("Error details: {}", e.getMessage());
+
+        // Return the structured response
         return new ResponseEntity<>(customizeException, HttpStatus.NOT_FOUND);
     }
 

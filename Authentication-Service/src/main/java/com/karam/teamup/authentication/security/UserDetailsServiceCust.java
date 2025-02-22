@@ -10,14 +10,14 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class PlayerDetailsService implements UserDetailsService {
+public class UserDetailsServiceCust implements UserDetailsService {
 
     private final UserRepository userRepository;
 
     @Override
     public UserDetails loadUserByUsername(String username) {
-        User user = userRepository.findPlayerByUsername(username).orElseThrow(() ->
+        User user = userRepository.findUserByUsername(username).orElseThrow(() ->
                 new UserNameNotFoundException("Account is inactive: " + username));
-        return new PlayerPrincipal(user);
+        return new UserPrincipal(user);
     }
 }

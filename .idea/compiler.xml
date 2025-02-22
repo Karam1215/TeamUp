@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="CompilerConfiguration">
+    <excludeFromCompile>
+      <directory url="file://$PROJECT_DIR$/team-service/src/main/resources/archetype-resources" includeSubdirectories="true" />
+    </excludeFromCompile>
     <annotationProcessing>
       <profile default="true" name="Default" enabled="true" />
       <profile name="Maven default annotation processors profile" enabled="true">
@@ -8,7 +11,14 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="player-service" />
+        <module name="Authentication-Service" />
+        <module name="team-service" />
+        <module name="eureka-server" />
+        <module name="apigatway" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="service-registry" target="21" />
+    </bytecodeTargetLevel>
   </component>
 </project>

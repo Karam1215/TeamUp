@@ -1,100 +1,143 @@
 package com.karam.teamup.authentication.exception;
 
 import io.jsonwebtoken.security.SignatureException;
-import jakarta.xml.bind.ValidationException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.time.ZonedDateTime;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final String GENERIC_AUTH_ERROR = "Authentication failed. Please check your credentials.";
+    private static final String GENERIC_JWT_ERROR = "Invalid authentication token. Please log in again.";
+    private static final String GENERIC_SERVER_ERROR = "An unexpected error occurred. Please try again later.";
+
+    /**
+     * Handle validation errors for request bodies
+     */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> handleValidationException(MethodArgumentNotValidException ex) {
-        log.warn("Validation error: {} fields failed validation", ex.getBindingResult().getFieldErrors().size());
+        log.warn("Validation error: {} fields failed validation", ex.getBindingResult().getFieldErrorCount());
 
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(error -> {
-            log.warn("Validation failed for field '{}': {}", error.getField(), error.getDefaultMessage());
-            errors.put(error.getField(), error.getDefaultMessage());
-        });
+        Map<String, String> errors = ex.getBindingResult().getFieldErrors().stream()
+            .collect(Collectors.toMap(
+                FieldError::getField,
+                FieldError::getDefaultMessage,
+                (existing, replacement) -> existing + ", " + replacement
+            ));
 
-        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+        return ResponseEntity.badRequest().body(errors);
     }
 
-
-    @ExceptionHandler(value = EmailAlreadyExistException.class)
-    public ResponseEntity<Object> emailAlreadyExist(EmailAlreadyExistException e) {
-        log.warn("Email already exists: {}", e.getMessage());
-
-        CustomizeException customizeException = new CustomizeException(
-                e.getMessage(),
-                HttpStatus.CONFLICT,
-                ZonedDateTime.now()
-        );
-        return new ResponseEntity<>(customizeException, HttpStatus.CONFLICT);
+    /**
+     * Handle duplicate email registration attempts
+     */
+    @ExceptionHandler(EmailAlreadyExistException.class)
+    public ResponseEntity<CustomizeException> handleEmailConflict(EmailAlreadyExistException ex) {
+        log.warn("Email conflict: {}", ex.getMessage());
+        return buildErrorResponse(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
-    @ExceptionHandler(value = UserNameAlreadyExist.class)
-    public ResponseEntity<Object> nameAlreadyExist(UserNameAlreadyExist e) {
-        log.warn("Username already exists: {}", e.getMessage());
-
-        CustomizeException customizeException = new CustomizeException(
-                e.getMessage(),
-                HttpStatus.CONFLICT,
-                ZonedDateTime.now()
-        );
-        return new ResponseEntity<>(customizeException, HttpStatus.CONFLICT);
+    /**
+     * Handle duplicate username registration attempts
+     */
+    @ExceptionHandler(UserNameAlreadyExist.class)
+    public ResponseEntity<CustomizeException> handleUsernameConflict(UserNameAlreadyExist ex) {
+        log.warn("Registration conflict: {}", ex.getMessage());
+        return buildErrorResponse(ex.getMessage(), HttpStatus.CONFLICT);
     }
 
-
-    @ExceptionHandler(value = InvalidCredentialsException.class)
-    public ResponseEntity<Object> invalidCredentials(InvalidCredentialsException e) {
-        log.warn("Invalid login attempt: {}", e.getMessage());
-
-        CustomizeException customizeException = new CustomizeException(
-                e.getMessage(),
-                HttpStatus.UNAUTHORIZED,
-                ZonedDateTime.now()
-        );
-        return new ResponseEntity<>(customizeException, HttpStatus.UNAUTHORIZED);
+    /**
+     * Handle invalid login credentials (generic message for security)
+     */
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<CustomizeException> handleInvalidCredentials(InvalidCredentialsException ex) {
+        log.warn("Authentication failure: {}", ex.getMessage());
+        return buildErrorResponse(GENERIC_AUTH_ERROR, HttpStatus.UNAUTHORIZED);
     }
 
-    @ExceptionHandler(SignatureException.class)
-    public ResponseEntity<String> handleInvalidJwtSignature(SignatureException ex) {
-        log.warn("JWT signature validation failed: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid JWT signature. Please log in again.");
+    /**
+     * Handle JWT-related exceptions
+     */
+    @ExceptionHandler({SignatureException.class, InvalidTokenException.class, MalformedTokenException.class})
+    public ResponseEntity<CustomizeException> handleJwtExceptions(RuntimeException ex) {
+        log.warn("JWT validation failed: {}", ex.getMessage());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("WWW-Authenticate", "Bearer error=\"invalid_token\"");
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .headers(headers)
+                .body(new CustomizeException(
+                        GENERIC_JWT_ERROR,
+                        HttpStatus.UNAUTHORIZED,
+                        ZonedDateTime.now()
+                ));
     }
 
+    /**
+     * Handle expired tokens
+     */
+    @ExceptionHandler(ExpiredTokenException.class)
+    public ResponseEntity<CustomizeException> handleExpiredToken(ExpiredTokenException ex) {
+        log.warn("Expired token: {}", ex.getMessage());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("WWW-Authenticate", "Bearer error=\"invalid_token\", error_description=\"Token expired\"");
+
+        // Build the response with headers
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .headers(headers)
+                .body(new CustomizeException(
+                        GENERIC_JWT_ERROR,
+                        HttpStatus.UNAUTHORIZED,
+                        ZonedDateTime.now()
+                ));
+    }
+
+    /**
+     * Handle all unexpected exceptions
+     */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Object> handleGenericException(Exception e) {
-        log.error("Unexpected error occurred: {}", e.getMessage(), e);
-
-        CustomizeException customizeException = new CustomizeException(
-                e.getMessage(),
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                ZonedDateTime.now()
-        );
-        return new ResponseEntity<>(customizeException, HttpStatus.INTERNAL_SERVER_ERROR);
+    public ResponseEntity<CustomizeException> handleGenericException(Exception ex) {
+        log.error("Unexpected error: {} - {}", ex.getClass().getSimpleName(), ex.getMessage(), ex);
+        return buildErrorResponse(GENERIC_SERVER_ERROR, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @ExceptionHandler(ValidationException.class)
-    public ResponseEntity<Object> handleValidationException(ValidationException e) {
-        log.warn("Validation error: {}", e.getMessage());
-
-        CustomizeException customizeException = new CustomizeException(
-                e.getMessage(),
-                HttpStatus.BAD_REQUEST,
-                ZonedDateTime.now()
-        );
-        return new ResponseEntity<>(customizeException, HttpStatus.BAD_REQUEST);
+    /**
+     * Build standardized error response
+     */
+    private ResponseEntity<CustomizeException> buildErrorResponse(String message, HttpStatus status) {
+        return ResponseEntity
+            .status(status)
+            .body(new CustomizeException(message, status, ZonedDateTime.now()));
     }
+
+    /**
+    * Handle all JWT exceptions
+    */
+    @ExceptionHandler(JwtAuthenticationException.class)
+    public ResponseEntity<CustomizeException> handleJwtException(JwtAuthenticationException ex, HttpStatus status) {
+        log.warn("Authentication failure JwtAuthenticationException: {}", ex.getMessage());
+
+        return ResponseEntity
+                .status(status)
+                .body(new CustomizeException(
+                        ex.getMessage(),
+                        status,
+                        ZonedDateTime.now()
+                )
+        );
+    }
+
 }

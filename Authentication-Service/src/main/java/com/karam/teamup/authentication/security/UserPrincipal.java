@@ -10,8 +10,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 @RequiredArgsConstructor
-
-public class PlayerPrincipal implements UserDetails {
+public class UserPrincipal implements UserDetails {
 
     private final transient User user;
 

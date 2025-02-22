@@ -1,34 +1,24 @@
 package com.karam.teamup.player.services;
 
-import com.karam.teamup.player.dto.*;
-import com.karam.teamup.player.entities.ConfirmationToken;
+import com.karam.teamup.player.dto.PlayerProfileDTO;
+import com.karam.teamup.player.dto.UpdatePlayerProfileDTO;
 import com.karam.teamup.player.entities.Player;
-import com.karam.teamup.player.exceptions.*;
-import com.karam.teamup.player.jwt.JWTService;
+import com.karam.teamup.player.exceptions.PlayerNotFoundException;
+import com.karam.teamup.player.exceptions.ResourceNotFoundException;
 import com.karam.teamup.player.mappers.PlayerProfileMapper;
 import com.karam.teamup.player.repositories.PlayerRepository;
-import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.rmi.UnexpectedException;
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -37,112 +27,12 @@ import java.util.stream.Collectors;
 public class PlayerService {
 
     private final PlayerRepository playerRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final AuthenticationManager authenticationManager;
-    private final JWTService jwtService;
     private final PlayerProfileMapper playerProfileMapper;
-    private final EmailService emailService;
-    private final ConfirmationTokenService confirmationTokenService;
 
     private static final String UPLOAD_DIR = "/home/karam/IdeaProjects/TeamUp/player-service/uploads";
     private static final long MAX_FILE_SIZE = 5 * 1024L * 1024; // 5MB
     public static final String PLAYER_NOT_FOUND = "Player not found";
 
-    public ResponseEntity<String> createPlayer(PlayerRegistration playerRegistration) {
-        log.info("Attempting to register player: {}", playerRegistration.userName());
-
-        if (playerRepository.findPlayerByEmail(playerRegistration.email()).isPresent()) {
-            log.warn("Email already exists: {}", playerRegistration.email());
-            throw new EmailAlreadyExistException("Email already exists");
-        }
-
-        if (playerRepository.findPlayerByUserName(playerRegistration.userName()).isPresent()) {
-            log.warn("Username already exists: {}", playerRegistration.userName());
-            throw new UserNameAlreadyExist(playerRegistration.userName() + " already exists, please enter a unique name");
-        }
-
-        Player player = Player.builder()
-                .userName(playerRegistration.userName())
-                .email(playerRegistration.email())
-                    .password(passwordEncoder.encode(playerRegistration.password()))
-                .build();
-
-        playerRepository.save(player);
-        ConfirmationToken token = confirmationTokenService.createToken(player);
-
-        emailService.sendVerificationMail(playerRegistration.email(),
-                                            player.getUserName(),
-                                            token.getToken());
-
-        log.info("Player successfully registered: {}", player.getUserName());
-
-        return new ResponseEntity<>("🎊 Welcome aboard! Your account is created." +
-                " Please check your email to verify and start your journey! 🚀", HttpStatus.CREATED);
-    }
-
-    public ResponseEntity<String> verifyAccount(String token) {
-        ConfirmationToken confirmationToken = confirmationTokenService.getToken(token).orElseThrow(
-                () -> new InvalidTokenException("Invalid token")
-        );
-
-        if (confirmationToken.getExpiresAt().isBefore(LocalDateTime.now())){
-            throw new TokenExpiredException("Срок действия токена истёк. Пожалуйста, запросите новую ссылку для подтверждения.");
-        }
-
-        if (confirmationToken.getConfirmedAt() != null) {
-            throw new AccountAlreadyVerifiedException("Аккаунт уже подтверждён.");
-        }
-
-        confirmationTokenService.setConfirmedAt(token);
-
-        Player player = confirmationToken.getPlayer();
-        player.setIsVerified(true);
-        playerRepository.save(player);
-
-        return ResponseEntity.ok("Account is verified!");
-    }
-
-    @Transactional
-    public ResponseEntity<String> resendVerificationToken(String email){
-        Player player = playerRepository.findPlayerByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found."));
-        Boolean isVerified = player.getIsVerified();
-        if (Boolean.TRUE.equals(isVerified)) {
-            throw new AccountAlreadyVerifiedException("Аккаунт уже подтверждён.");
-        }
-        confirmationTokenService.invalidateExistingTokens(player);
-        ConfirmationToken newToken = confirmationTokenService.createToken(player);
-        emailService.sendVerificationMail(player.getEmail(), player.getUserName(), newToken.getToken());
-        return ResponseEntity.ok("we sent an email to verify your account.");
-    }
-
-    public ResponseEntity<Map<String,String>> login(PlayerLogin playerLogin) {
-        log.info("Attempting login for email: {}", playerLogin.email());
-
-        try {
-            Player player = playerRepository.findPlayerByEmail(playerLogin.email())
-                    .orElseThrow(() -> {
-                        log.warn("Invalid login attempt: {}", playerLogin.email());
-                        return new InvalidCredentialsException("Invalid email or password");
-                    });
-
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(player.getUserName(), playerLogin.password())
-            );
-
-            String token = jwtService.generateToken(player.getUserName());
-            log.info("Login successful for user: {}", player.getUserName());
-
-            return ResponseEntity.ok(Map.of("token", token));
-
-        } catch (AuthenticationException e) {
-            log.warn("Authentication failed for email: {}", playerLogin.email());
-            throw new InvalidCredentialsException("Invalid email or password");
-        } catch (Exception e) {
-            log.error("Unexpected error during login: {}", e.getMessage());
-            throw new IllegalArgumentException("Unexpected error during login");
-        }
-    }
 
     @Transactional(readOnly = true)
     public ResponseEntity<PlayerProfileDTO> getPlayerByUsername(String username) {
@@ -157,8 +47,7 @@ public class PlayerService {
         return ResponseEntity.ok(playerProfileMapper.toDTO(player));
     }
 
-    public ResponseEntity<String> deletePlayerByUsername(Authentication authentication) {
-        String username = authentication.getName();
+    public ResponseEntity<String> deletePlayerByUsername(String username) {
         log.info("Attempting to delete account for: {}", username);
 
         Player player = playerRepository.findPlayerByUserName(username).orElseThrow(() -> {
@@ -172,8 +61,8 @@ public class PlayerService {
         return new ResponseEntity<>("Account deleted successfully", HttpStatus.OK);
     }
 
-    public ResponseEntity<PlayerProfileDTO> getPlayerProfile(Authentication authentication) {
-        String username = authentication.getName();
+    public ResponseEntity<PlayerProfileDTO> getPlayerProfile(String username) {
+        //String username = authentication.getName();
         log.info("Fetching profile for player: {}", username);
 
         Player player = playerRepository.findPlayerByUserName(username).orElseThrow(() -> {
@@ -186,8 +75,7 @@ public class PlayerService {
     }
 
     public ResponseEntity<String> updatePlayerProfile(UpdatePlayerProfileDTO updatePlayerProfileDTO,
-                                                      Authentication authentication) {
-        String username = authentication.getName();
+                                                      String username) {
         log.info("Updating profile for player: {}", username);
 
         Player player = playerRepository.findPlayerByUserName(username).orElseThrow(() -> {
@@ -202,8 +90,7 @@ public class PlayerService {
         return new ResponseEntity<>("Profile updated successfully", HttpStatus.OK);
     }
 
-    public ResponseEntity<String> uploadProfilePicture(MultipartFile file, Authentication authentication) {
-        String username = authentication.getName();
+    public ResponseEntity<String> uploadProfilePicture(MultipartFile file, String username) {
         log.info("Uploading profile picture for player: {}", username);
 
         Player player = playerRepository.findPlayerByUserName(username).orElseThrow(() -> {
@@ -248,21 +135,6 @@ public class PlayerService {
         playerRepository.save(player);
 
         return ResponseEntity.ok("Profile picture uploaded successfully: " + filePath);
-    }
-
-    public ResponseEntity<String> changePassword(Authentication authentication,
-                                                 ChangePasswordRequest changePasswordRequest) {
-        Player player = playerRepository.findPlayerByUserName(authentication.getName()).get();
-        if (!passwordEncoder.matches(changePasswordRequest.currentPassword(), player.getPassword())) {
-            throw new InvalidCredentialsException("Invalid password");
-        }
-        if (!changePasswordRequest.newPassword().equals(changePasswordRequest.passwordConfirmation())) {
-            throw new ValidationException("Confirmed password does not match.");
-        }
-        player.setPassword(passwordEncoder.encode(changePasswordRequest.newPassword()));
-        playerRepository.save(player);
-        log.info("Password changed successfully");
-        return ResponseEntity.ok("Password changed successfully.");
     }
 
     //TODO make controller for this future

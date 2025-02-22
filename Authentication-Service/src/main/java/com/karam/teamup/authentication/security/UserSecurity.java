@@ -13,23 +13,20 @@ public class UserSecurity implements AuthorizationManager<RequestAuthorizationCo
 
     @Override
     public AuthorizationDecision check(Supplier<Authentication> authenticationSupplier, RequestAuthorizationContext ctx) {
-        // Extract {username} from the request path
         String username = ctx.getVariables().get("username");
 
-        // Get the authenticated user's username from JWT
         Authentication authentication = authenticationSupplier.get();
         String authenticatedUsername = getUsernameFromAuthentication(authentication);
 
-        // Check if the authenticated user is authorized to access the resource
         boolean isAuthorized = authenticatedUsername != null && authenticatedUsername.equals(username);
         return new AuthorizationDecision(isAuthorized);
     }
 
     private String getUsernameFromAuthentication(Authentication authentication) {
-        // Assuming PlayerPrincipal has a getUsername() method
-        if (authentication != null && authentication.getPrincipal() instanceof PlayerPrincipal playerPrincipal) {
+
+        if (authentication != null && authentication.getPrincipal() instanceof UserPrincipal userPrincipal) {
             authentication.getPrincipal();
-            return playerPrincipal.getUsername();
+            return userPrincipal.getUsername();
         }
         return null;
     }

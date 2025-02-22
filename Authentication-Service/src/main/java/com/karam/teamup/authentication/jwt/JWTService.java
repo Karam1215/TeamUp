@@ -1,11 +1,15 @@
 package com.karam.teamup.authentication.jwt;
 
-import com.karam.teamup.authentication.security.PlayerPrincipal;
+import com.karam.teamup.authentication.exception.ExpiredTokenException;
+import com.karam.teamup.authentication.security.UserPrincipal;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +23,8 @@ import java.util.function.Function;
 @Service
 public class JWTService {
 
-    private String secretKey = "";
+    @Value("${my.jwt.secret-key}")
+    private String secretKey;
 
     public JWTService() throws NoSuchAlgorithmException {
 
@@ -69,12 +74,12 @@ public class JWTService {
                 .getPayload();
     }
 
-public boolean validateToken(String token, UserDetails userDetails) {
+    public boolean validateToken(String token, UserDetails userDetails) {
     try {
         final String userName = extractUserName(token);
 
-        if (userDetails instanceof PlayerPrincipal playerPrincipal) {
-            return (userName.equals(playerPrincipal.getUsername()) || userName.equals(playerPrincipal.getUsername()))
+        if (userDetails instanceof UserPrincipal userPrincipal) {
+            return (userName.equals(userPrincipal.getUsername()) || userName.equals(userPrincipal.getUsername()))
                 && !isTokenExpired(token);
         } else {
             throw new ClassCastException("UserDetails is not an instance of PlayerPrincipal.");
@@ -93,6 +98,17 @@ public boolean validateToken(String token, UserDetails userDetails) {
         return false;
     }
 }
+
+    public ResponseEntity<String> validateToken(String token){
+        Jwts.parser()
+                        .verifyWith(getKey())
+                        .build()
+                        .parseSignedClaims(token);
+        if (isTokenExpired(token)){
+            throw new ExpiredTokenException("The token is Expired.");
+        }
+        return ResponseEntity.ok("Token is Valid");
+    }
 
 
     private boolean isTokenExpired(String token) {

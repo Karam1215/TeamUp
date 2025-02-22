@@ -6,8 +6,10 @@ import com.karam.teamup.player.dto.UpdatePlayerProfileDTO;
 import com.karam.teamup.player.entities.Player;
 import org.mapstruct.*;
 
+/*
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING,
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+*/
 public interface PlayerProfileMapper {
     @Mapping(target = "firstName", source = "firstName")
     @Mapping(target = "lastName", source = "lastName")

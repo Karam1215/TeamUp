@@ -23,14 +23,13 @@ public class User {
     @Column(name = "user_id", nullable = false, updatable = false, unique = true)
     @GeneratedValue(strategy = GenerationType.UUID)
     @Schema(name = "user_id", example = "72bde859-d59e-4a61-b060-d5fa60426203", requiredMode = Schema.RequiredMode.REQUIRED, description = "Unique user identifier.")
-    private UUID user_id;
+    private UUID userId;
 
     @NotBlank(message = "username can't be empty")
     @Column(name = "user_name", nullable = false, unique = true)
     @Size(min = 1, max = 100, message = "Username should be between 1 and 100 characters.")
     @Schema(name = "name", example = "Karam", requiredMode = Schema.RequiredMode.REQUIRED, description = "Username. Should be between 1 and 100 characters.")
     private String username;
-
 
     @NotBlank(message = "Email can't be empty")
     @Email(message = "Please enter a valid email address.")

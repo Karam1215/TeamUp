@@ -3,7 +3,8 @@
   <component name="DiffGenerationConfig">
     <option name="snapshotDb" value="false" />
     <option name="snapshotModelValue" value="player-service:entityManagerFactory" />
-    <option name="sourceModelValue" value="player-service:entityManagerFactory" />
-    <option name="targetDbValue" value="1bfa8d3d-9fbe-4413-b3c4-778c72ee2812" />
+    <option name="sourceDbValue" value="4132a837-71bc-40a3-ba90-9efc539f5a3b" />
+    <option name="sourceModelValue" value="player-service:player-service" />
+    <option name="targetDbValue" value="4132a837-71bc-40a3-ba90-9efc539f5a3b" />
   </component>
 </project>

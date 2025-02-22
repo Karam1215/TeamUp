@@ -51,12 +51,6 @@ public class Player {
     @Schema(name = "phoneNumber", example = "+7 (123) 456-78-90", description = "Player's phone number. Should be in the format: +7 (XXX) XXX-XX-XX.")
     private String phoneNumber;
 
-    @NotBlank(message = "Password can't be empty")
-    @Column(name = "password")
-    @Size(min = 7, max = 255, message = "Password should be between 7 and 255 characters.")
-    @Schema(name = "password", example = "pass123123", requiredMode = Schema.RequiredMode.REQUIRED, description = "User's password. Should be between 7 and 255 characters.")
-    private String password;
-
     @Past
     @Column(name = "date_of_birth")
     @Schema(name = "birthday", example = "2002-11-04", description = "User's birth date. Format: yyyy-MM-dd.")
@@ -87,12 +81,6 @@ public class Player {
     @Column(name = "sport")
     @Schema(name = "sport", example = "football", description = "Sport that the user is interested in.")
     private String sport;
-
-    @Builder.Default
-    @Column(name = "is_verified")
-    @Schema(name = "isVerified", example = "false",
-            description = "verification for email address")
-    private Boolean isVerified = false;
 
     @PrePersist
     public void prePersist() {

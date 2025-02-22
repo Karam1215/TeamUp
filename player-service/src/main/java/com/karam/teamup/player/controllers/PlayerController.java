@@ -1,6 +1,7 @@
 package com.karam.teamup.player.controllers;
 
 import com.karam.teamup.player.dto.*;
+import com.karam.teamup.player.exceptions.InvalidCredentialsException;
 import com.karam.teamup.player.services.PlayerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -10,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -31,7 +34,9 @@ public class PlayerController {
             @ApiResponse(responseCode = "404", description = "Player not found")
     })
     public ResponseEntity<PlayerProfileDTO> getPlayerByUsername(
+/*
             @Parameter(description = "Username of the player to fetch", example = "john_doe")
+*/
             @PathVariable("username") String username) {
         log.info("Fetching player profile for: {}", username);
         return playerService.getPlayerByUsername(username);
@@ -42,9 +47,9 @@ public class PlayerController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Profile retrieved successfully")
     })
-    public ResponseEntity<PlayerProfileDTO> getOwnPlayerProfile(Authentication authentication) {
-        log.info("Fetching profile for authenticated user: {}", authentication.getName());
-        return playerService.getPlayerProfile(authentication);
+    public ResponseEntity<PlayerProfileDTO> getOwnPlayerProfile(@RequestHeader("X-Username") String username) {
+        log.info("Fetching profile for authenticated user: {}", username);
+        return playerService.getPlayerProfile(username);
     }
 
     @PatchMapping("/me")
@@ -53,9 +58,9 @@ public class PlayerController {
             @ApiResponse(responseCode = "200", description = "Profile updated successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid update request")
     })
-    public ResponseEntity<String> updatePlayer(@RequestBody UpdatePlayerProfileDTO dto, Authentication authentication) {
-        log.info("Updating player profile: {}", authentication.getName());
-        return playerService.updatePlayerProfile(dto, authentication);
+    public ResponseEntity<String> updatePlayer(@RequestHeader("X-Username") String username,@RequestBody UpdatePlayerProfileDTO dto) {
+        log.info("Updating player profile: {}", username);
+        return playerService.updatePlayerProfile(dto, username);
     }
 
     @PostMapping("/me/upload_picture")
@@ -66,11 +71,11 @@ public class PlayerController {
             @ApiResponse(responseCode = "500", description = "Server error while processing the file")
     })
     public ResponseEntity<String> uploadProfilePicture(
-            Authentication authentication,
+            @RequestHeader("X-Username") String username,
             @Parameter(description = "Profile picture file (JPEG, PNG)", required = true)
             @RequestParam("profilePicture") MultipartFile file) throws IOException {
-        log.info("Uploading profile picture for: {}", authentication.getName());
-        return playerService.uploadProfilePicture(file, authentication);
+        log.info("Uploading profile picture for: {}", username);
+        return playerService.uploadProfilePicture(file, username);
     }
 
     @DeleteMapping("/me")
@@ -80,22 +85,8 @@ public class PlayerController {
             @ApiResponse(responseCode = "403", description = "Forbidden - Not authorized to delete this account"),
             @ApiResponse(responseCode = "404", description = "Player not found")
     })
-    public ResponseEntity<String> deletePlayer(Authentication authentication) {
-        log.info("Deleting player: {}", authentication.getName());
-        return playerService.deletePlayerByUsername(authentication);
-    }
-
-    @PatchMapping("/me/password")
-    @Operation(summary = "Change the authenticated user's password",
-               description = "This endpoint allows the authenticated user to change their password. The user needs to provide the current password and the new password. The current password will be validated before the password change operation proceeds.")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Password changed successfully"),
-        @ApiResponse(responseCode = "400", description = "Bad request, e.g. invalid current password or weak new password"),
-        @ApiResponse(responseCode = "401", description = "Unauthorized, user is not authenticated or password validation failed"),
-        @ApiResponse(responseCode = "500", description = "Internal server error, unexpected issue")
-    })
-    public ResponseEntity<String> changePassword(Authentication authentication, @RequestBody ChangePasswordRequest passwordRequest) {
-        log.info("Changing password for authenticated user: {}", authentication.getName());
-        return playerService.changePassword(authentication,passwordRequest);
+    public ResponseEntity<String> deletePlayer(@RequestHeader("X-Username") String username) {
+        log.info("Deleting player: {}", username);
+        return playerService.deletePlayerByUsername(username);
     }
 }

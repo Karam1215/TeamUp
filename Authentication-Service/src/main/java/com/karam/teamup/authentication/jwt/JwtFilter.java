@@ -1,7 +1,8 @@
 package com.karam.teamup.authentication.jwt;
 
 
-import com.karam.teamup.authentication.security.PlayerDetailsService;
+import com.karam.teamup.authentication.exception.JwtAuthenticationException;
+import com.karam.teamup.authentication.security.UserDetailsServiceCust;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.SignatureException;
@@ -19,14 +20,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-
 @Component
 @RequiredArgsConstructor
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JWTService jwtService;
 
-    private final PlayerDetailsService playerDetailsService;
+    private final UserDetailsServiceCust userDetailsServiceCust;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -41,7 +41,7 @@ public class JwtFilter extends OncePerRequestFilter {
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = playerDetailsService.loadUserByUsername(username);
+            UserDetails userDetails = userDetailsServiceCust.loadUserByUsername(username);
 
             if (jwtService.validateToken(jwtToken, userDetails)) {
                 UsernamePasswordAuthenticationToken token =
@@ -55,13 +55,11 @@ public class JwtFilter extends OncePerRequestFilter {
 
         } catch (SignatureException e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Invalid JWT signature. Please log in again.");
+            throw new JwtAuthenticationException("Invalid JWT signature. Please log in again.");
         } catch (ExpiredJwtException e) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Token has expired. Please log in again.");
+            throw new JwtAuthenticationException("Token has expired. Please log in again.");
         } catch (MalformedJwtException e) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("Invalid JWT token format.");
+            throw new JwtAuthenticationException("Invalid JWT token format.");
         }
     }
 }
