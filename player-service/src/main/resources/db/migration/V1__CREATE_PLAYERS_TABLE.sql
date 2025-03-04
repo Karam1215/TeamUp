@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS players (
-    player_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    player_id UUID PRIMARY KEY,
     user_name VARCHAR(255) NOT NULL UNIQUE,
     first_name VARCHAR(50),
     last_name VARCHAR(50),

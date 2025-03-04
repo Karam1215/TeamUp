@@ -1,11 +1,12 @@
 package com.karam.teamup.authentication.services;
 
 import com.karam.teamup.authentication.dto.ChangePasswordRequest;
+import com.karam.teamup.authentication.dto.UserCreatedEvent;
 import com.karam.teamup.authentication.dto.UserLoginDTO;
 import com.karam.teamup.authentication.dto.UserRegistrationDTO;
+import com.karam.teamup.authentication.entities.Role;
 import com.karam.teamup.authentication.entities.User;
 import com.karam.teamup.authentication.exception.EmailAlreadyExistException;
-import com.karam.teamup.authentication.exception.ExpiredTokenException;
 import com.karam.teamup.authentication.exception.InvalidCredentialsException;
 import com.karam.teamup.authentication.exception.UserNameAlreadyExist;
 import com.karam.teamup.authentication.jwt.JWTService;
@@ -13,26 +14,28 @@ import com.karam.teamup.authentication.repositories.UserRepository;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class UserService {
-        
+public class PlayerService {
+
+    @Value("${my.kafka.topic.name}")
+    private String topicName;
+    private final JWTService jwtService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
-    private final JWTService jwtService;
-    
+    private final KafkaTemplate<String, UserCreatedEvent> kafkaTemplate;
     
     public ResponseEntity<String> createPlayer(UserRegistrationDTO registrationDTO) {
         log.info("Attempting to register player: {}", registrationDTO.username());
@@ -51,11 +54,18 @@ public class UserService {
                 .username(registrationDTO.username())
                 .email(registrationDTO.email())
                 .password(passwordEncoder.encode(registrationDTO.password()))
+                .role(Role.USER)
                 .build();
 
         userRepository.save(userToBeSaved);
 
         log.info("Player successfully registered: {}", userToBeSaved.getUsername());
+
+        UserCreatedEvent userToBeSendByKafkaToPlayerService = new UserCreatedEvent(userToBeSaved.getUserId(),
+                userToBeSaved.getUsername(),
+                userToBeSaved.getEmail());
+        kafkaTemplate.send(topicName, userToBeSendByKafkaToPlayerService);
+        log.info("Sending user event: {}", userToBeSendByKafkaToPlayerService);
 
         return new ResponseEntity<>("🎊 Welcome aboard! Your account is created." +
                 " Please check your email to verify and start your journey! 🚀", HttpStatus.CREATED);
@@ -74,7 +84,7 @@ public class UserService {
                 new UsernamePasswordAuthenticationToken(user.getUsername(), userLoginDTO.password())
         );
 
-        String token = jwtService.generateToken(user.getUsername());
+        String token = jwtService.generateToken(user.getUsername(), String.valueOf(Role.USER));
         log.info("Login successful for user: {}", user.getUsername());
 
         return ResponseEntity.ok(token);

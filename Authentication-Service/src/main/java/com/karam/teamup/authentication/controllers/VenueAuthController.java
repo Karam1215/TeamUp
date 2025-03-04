@@ -4,7 +4,7 @@ import com.karam.teamup.authentication.dto.ChangePasswordRequest;
 import com.karam.teamup.authentication.dto.UserLoginDTO;
 import com.karam.teamup.authentication.dto.UserRegistrationDTO;
 import com.karam.teamup.authentication.jwt.JWTService;
-import com.karam.teamup.authentication.services.UserService;
+import com.karam.teamup.authentication.services.VenueService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -18,17 +18,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.Map;
 
 
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/auth")
+@RequestMapping("/auth/venues")
 @Tag(name = "getting Account API", description = "operations connected with user register/login")
-public class AuthController {
+public class VenueAuthController {
 
-    private final UserService userService;
+    private final VenueService venueService;
     private final JWTService jwtService;
     @PostMapping("/register")
     @Operation(summary = "Register a new player", description = "Creates a new player account. Requires unique email and username.")
@@ -39,7 +40,7 @@ public class AuthController {
     })
     public ResponseEntity<String> registerPlayer(@Valid @RequestBody UserRegistrationDTO dto) {
         log.info("Registering player: {}", dto.username());
-        return userService.createPlayer(dto);
+        return venueService.createVenue(dto);
     }
 
     @PostMapping("/login")
@@ -54,7 +55,7 @@ public class AuthController {
     })
     public ResponseEntity<String> login(@Valid @RequestBody UserLoginDTO userLoginDTO) {
         log.info("Login attempt for: {}", userLoginDTO.email());
-        return userService.login(userLoginDTO);
+        return venueService.login(userLoginDTO);
     }
 
     @GetMapping("/validate")
@@ -73,6 +74,6 @@ public class AuthController {
     })
     public ResponseEntity<String> changePassword(Authentication authentication, @RequestBody ChangePasswordRequest passwordRequest) {
         log.info("Changing password for authenticated user: {}", authentication.getName());
-        return userService.changePassword(authentication,passwordRequest);
+        return venueService.changePassword(authentication,passwordRequest);
     }
 }

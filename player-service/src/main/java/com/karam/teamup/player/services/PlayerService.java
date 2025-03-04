@@ -2,6 +2,7 @@ package com.karam.teamup.player.services;
 
 import com.karam.teamup.player.dto.PlayerProfileDTO;
 import com.karam.teamup.player.dto.UpdatePlayerProfileDTO;
+import com.karam.teamup.player.dto.UserCreatedEvent;
 import com.karam.teamup.player.entities.Player;
 import com.karam.teamup.player.exceptions.PlayerNotFoundException;
 import com.karam.teamup.player.exceptions.ResourceNotFoundException;
@@ -149,5 +150,15 @@ public class PlayerService {
                 .map(playerProfileMapper::toDTO)
                 .toList();
         return ResponseEntity.ok(playerProfileDTOList);
+    }
+
+    public ResponseEntity<String> createPlayer(UserCreatedEvent userCreatedEvent) {
+        Player player = Player.builder()
+                .playerId(userCreatedEvent.userId())
+                .userName(userCreatedEvent.username())
+                .email(userCreatedEvent.email())
+                .build();
+        playerRepository.save(player);
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 }

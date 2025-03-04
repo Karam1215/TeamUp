@@ -22,7 +22,6 @@ public class Player {
 
     @Id
     @Column(name = "player_id", nullable = false, updatable = false, unique = true)
-    @GeneratedValue(strategy = GenerationType.UUID)
     @Schema(name = "player_id", example = "72bde859-d59e-4a61-b060-d5fa60426203", requiredMode = Schema.RequiredMode.REQUIRED, description = "Unique player identifier.")
     UUID playerId;
 

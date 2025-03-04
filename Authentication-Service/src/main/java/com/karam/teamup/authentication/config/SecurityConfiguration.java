@@ -34,8 +34,8 @@ public class SecurityConfiguration implements WebMvcConfigurer{
                 .authorizeHttpRequests(auth ->
                         auth
                                 .requestMatchers(
-                                        "/auth/register",
-                                        "/auth/login",
+                                        "/auth/venues/**",
+                                        "/auth/player/**",
                                         "/auth/validate",
                                         "/v3/api-docs",
                                         "/v3/api-docs/**",

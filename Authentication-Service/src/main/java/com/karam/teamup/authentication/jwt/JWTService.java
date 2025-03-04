@@ -1,9 +1,7 @@
 package com.karam.teamup.authentication.jwt;
 
 import com.karam.teamup.authentication.exception.ExpiredTokenException;
-import com.karam.teamup.authentication.security.UserPrincipal;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -13,10 +11,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 @Slf4j
@@ -26,19 +24,9 @@ public class JWTService {
     @Value("${my.jwt.secret-key}")
     private String secretKey;
 
-    public JWTService() throws NoSuchAlgorithmException {
-
-        try {
-            KeyGenerator keyGen = KeyGenerator.getInstance("HmacSHA256");
-            SecretKey sk = keyGen.generateKey();
-            secretKey = Base64.getEncoder().encodeToString(sk.getEncoded());
-        } catch (NoSuchAlgorithmException e) {
-            throw new NoSuchAlgorithmException("unable to generate secret key");
-        }
-    }
-
-    public String generateToken(String username) {
+    public String generateToken(String username, String role) {
         Map<String, Object> claims = new HashMap<>();
+        claims.put("role", "ROLE_" + role);
         return Jwts.builder()
                 .claims()
                 .add(claims)
@@ -48,7 +36,6 @@ public class JWTService {
                 .and()
                 .signWith(getKey())
                 .compact();
-
     }
 
     private SecretKey getKey() {
@@ -57,12 +44,44 @@ public class JWTService {
     }
 
     public String extractUserName(String token) {
-        // extract the username from jwt token
         return extractClaim(token, Claims::getSubject);
     }
 
+    public String extractRole(String token) {
+        return extractAllClaims(token).get("role", String.class);
+    }
+
+    public boolean validateToken(String token, UserDetails userDetails) {
+        final String userName = extractUserName(token);
+        return userName.equals(userDetails.getUsername()) && !isTokenExpired(token);
+    }
+
+    public ResponseEntity<String> validateToken(String token) {
+        try {
+            Jwts.parser()
+                    .verifyWith(getKey())
+                    .build()
+                    .parseSignedClaims(token);
+            if (isTokenExpired(token)) {
+                throw new ExpiredTokenException("The token is expired.");
+            }
+            return ResponseEntity.ok("Token is Valid");
+        } catch (Exception e) {
+            log.error("Invalid Token: {}", e.getMessage());
+            return ResponseEntity.badRequest().body("Invalid Token");
+        }
+    }
+
+    private boolean isTokenExpired(String token) {
+        return extractExpiration(token).before(new Date());
+    }
+
+    private Date extractExpiration(String token) {
+        return extractClaim(token, Claims::getExpiration);
+    }
+
     private <T> T extractClaim(String token, Function<Claims, T> claimResolver) {
-        final Claims claims = extractAllClaims(token);
+        Claims claims = extractAllClaims(token);
         return claimResolver.apply(claims);
     }
 
@@ -72,50 +91,5 @@ public class JWTService {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-    }
-
-    public boolean validateToken(String token, UserDetails userDetails) {
-    try {
-        final String userName = extractUserName(token);
-
-        if (userDetails instanceof UserPrincipal userPrincipal) {
-            return (userName.equals(userPrincipal.getUsername()) || userName.equals(userPrincipal.getUsername()))
-                && !isTokenExpired(token);
-        } else {
-            throw new ClassCastException("UserDetails is not an instance of PlayerPrincipal.");
-        }
-    } catch (ClassCastException e) {
-        // Log and handle the ClassCastException if PlayerPrincipal cast fails
-        log.error("Error during token validation: {}", e.getMessage());
-        return false;
-    } catch (NoSuchElementException e) {
-        // Handle NoSuchElementException if something is missing in the token or userDetails
-        log.error("Error during token validation: {}", e.getMessage());
-        return false;
-    } catch (Exception e) {
-        // Catch any other unexpected exceptions
-        log.error("Unexpected error during token validation: {}", e.getMessage());
-        return false;
-    }
-}
-
-    public ResponseEntity<String> validateToken(String token){
-        Jwts.parser()
-                        .verifyWith(getKey())
-                        .build()
-                        .parseSignedClaims(token);
-        if (isTokenExpired(token)){
-            throw new ExpiredTokenException("The token is Expired.");
-        }
-        return ResponseEntity.ok("Token is Valid");
-    }
-
-
-    private boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
-    }
-
-    private Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
     }
 }

@@ -42,4 +42,7 @@ public class User {
     @Size(min = 7, max = 255, message = "Password should be between 7 and 255 characters.")
     @Schema(name = "password", example = "pass123123", requiredMode = Schema.RequiredMode.REQUIRED, description = "User's password. Should be between 7 and 255 characters.")
     private String password;
+
+    @Enumerated(EnumType.STRING)
+    private Role role;
 }
