@@ -1,5 +1,6 @@
 package com.karam.teamup.authentication.services;
 
+import com.karam.teamup.authentication.cookie.CookieUtil;
 import com.karam.teamup.authentication.dto.ChangePasswordRequest;
 import com.karam.teamup.authentication.dto.UserCreatedEvent;
 import com.karam.teamup.authentication.dto.UserLoginDTO;
@@ -11,6 +12,7 @@ import com.karam.teamup.authentication.exception.InvalidCredentialsException;
 import com.karam.teamup.authentication.exception.UserNameAlreadyExist;
 import com.karam.teamup.authentication.jwt.JWTService;
 import com.karam.teamup.authentication.repositories.UserRepository;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +36,7 @@ public class PlayerService {
     private final JWTService jwtService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CookieUtil cookieUtil;
     private final AuthenticationManager authenticationManager;
     private final KafkaTemplate<String, UserCreatedEvent> kafkaTemplate;
     
@@ -71,7 +74,7 @@ public class PlayerService {
                 " Please check your email to verify and start your journey! 🚀", HttpStatus.CREATED);
     }
 
-    public ResponseEntity<String> login(UserLoginDTO userLoginDTO) {
+    public ResponseEntity<String> login(UserLoginDTO userLoginDTO, HttpServletResponse response) {
         log.info("Attempting login for email: {}", userLoginDTO.email());
 
         User user = userRepository.findUserByEmail(userLoginDTO.email())
@@ -84,15 +87,19 @@ public class PlayerService {
                 new UsernamePasswordAuthenticationToken(user.getUsername(), userLoginDTO.password())
         );
 
-        String token = jwtService.generateToken(user.getUsername(), String.valueOf(Role.USER));
+        String token = jwtService.generateAccessToken(user.getUsername(), String.valueOf(Role.USER));
         log.info("Login successful for user: {}", user.getUsername());
 
-        return ResponseEntity.ok(token);
+        cookieUtil.addAuthTokenCookie(response, token);
+
+        return ResponseEntity.ok("Login successful. Token is stored in cookie.");
     }
 
     public ResponseEntity<String> changePassword(Authentication authentication,
                                                  ChangePasswordRequest changePasswordRequest) {
+
         User player = userRepository.findUserByUsername(authentication.getName()).get();
+
         if (!passwordEncoder.matches(changePasswordRequest.currentPassword(), player.getPassword())) {
             throw new InvalidCredentialsException("Invalid password");
         }

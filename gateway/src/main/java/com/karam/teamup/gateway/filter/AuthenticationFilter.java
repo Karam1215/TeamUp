@@ -12,6 +12,7 @@ import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Component
@@ -36,21 +37,16 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
             if (routeValidator.isSecured.test(request)) {
                 log.info("Checking authentication for request: {}", requestPath);
 
-                // Check if the authorization header is present
-                if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
-                    log.warn("Missing authorization header for request: {}", requestPath);
-                    throw new UnauthorizedAccessException("Missing authorization header");
+                // Try to get the token from cookies
+                String token = getTokenFromCookies(request);
+
+                if (token == null) {
+                    log.warn("Missing JWT cookie for request: {}", requestPath);
+                    throw new UnauthorizedAccessException("Missing JWT cookie");
                 }
 
-                String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-                if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                    log.warn("Invalid authorization header format for request: {}", requestPath);
-                    throw new UnauthorizedAccessException("Invalid authorization header");
-                }
-
-                String token = authHeader.substring(7); // Extract the token from the header
                 try {
-                    // Validate token and extract username
+                    // Validate the token and extract username
                     jwtUtil.validateToken(token);
                     String username = jwtUtil.extractUsername(token);
                     String role = jwtUtil.extractRole(token);  // Extract the role directly
@@ -62,7 +58,6 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                     if (requiredRoles.contains(role)) {
                         log.info("Token validated successfully for user: {}", username);
 
-                        // Add the username to the request header to be forwarded to the next service
                         ServerHttpRequest modifiedRequest = request.mutate()
                                 .header("X-Username", username)
                                 .build();
@@ -78,16 +73,24 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                     throw new UnauthorizedAccessException("Unauthorized access: Invalid or expired token");
                 }
             }
+
             return chain.filter(exchange);  // If route is not secured, continue processing
         });
     }
 
-    // Dynamic role retrieval (you can customize this based on your routes or services)
+    // Try to retrieve the JWT token from cookies
+    private String getTokenFromCookies(ServerHttpRequest request) {
+        if (request.getCookies().containsKey("auth_token")) {
+            return Objects.requireNonNull(request.getCookies().getFirst("auth_token")).getValue();
+        }
+        return null;
+    }
+
     private List<String> getRequiredRolesForRoute(String requestPath) {
         if (requestPath.startsWith("/api/v1/player")) {
-            return List.of("ROLE_USER", "ROLE_ADMIN"); // Example: "ROLE_USER" and "ROLE_ADMIN" roles allowed for player service
+            return List.of("ROLE_USER", "ROLE_ADMIN");
         }
-        return List.of("ROLE_USER"); // Default to "ROLE_USER" if no specific route
+        return List.of("ROLE_USER");
     }
 
     public static class Config {}

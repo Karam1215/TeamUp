@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +29,7 @@ import java.util.Map;
 @Tag(name = "getting Account API", description = "operations connected with user register/login")
 public class PlayerAuthController {
 
-    private final PlayerService userService;
+    private final PlayerService playerService;
     private final JWTService jwtService;
     @PostMapping("/register")
     @Operation(summary = "Register a new player", description = "Creates a new player account. Requires unique email and username.")
@@ -39,7 +40,7 @@ public class PlayerAuthController {
     })
     public ResponseEntity<String> registerPlayer(@Valid @RequestBody UserRegistrationDTO dto) {
         log.info("Registering player: {}", dto.username());
-        return userService.createPlayer(dto);
+        return playerService.createPlayer(dto);
     }
 
     @PostMapping("/login")
@@ -52,9 +53,9 @@ public class PlayerAuthController {
             )),
             @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid credentials", content = @Content)
     })
-    public ResponseEntity<String> login(@Valid @RequestBody UserLoginDTO userLoginDTO) {
+    public ResponseEntity<String> login(@Valid @RequestBody UserLoginDTO userLoginDTO, HttpServletResponse response) {
         log.info("Login attempt for: {}", userLoginDTO.email());
-        return userService.login(userLoginDTO);
+        return playerService.login(userLoginDTO, response);
     }
 
     @GetMapping("/validate")
@@ -73,6 +74,6 @@ public class PlayerAuthController {
     })
     public ResponseEntity<String> changePassword(Authentication authentication, @RequestBody ChangePasswordRequest passwordRequest) {
         log.info("Changing password for authenticated user: {}", authentication.getName());
-        return userService.changePassword(authentication,passwordRequest);
+        return playerService.changePassword(authentication,passwordRequest);
     }
 }

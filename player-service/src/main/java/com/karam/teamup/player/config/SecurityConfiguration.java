@@ -25,6 +25,7 @@ public class SecurityConfiguration implements WebMvcConfigurer{
                         auth
 
                                 .requestMatchers(
+                                        "/actuator/health",
                                         "/swagger-ui/**",
                                         "/v3/api-docs/**",
                                         "/v3/api-docs",

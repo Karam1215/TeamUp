@@ -84,7 +84,7 @@ public class VenueService {
                 new UsernamePasswordAuthenticationToken(user.getUsername(), userLoginDTO.password())
         );
 
-        String token = jwtService.generateToken(user.getUsername(), String.valueOf(Role.VENUE)); // Use VENUE role here
+        String token = jwtService.generateAccessToken(user.getUsername(), String.valueOf(Role.VENUE)); // Use VENUE role here
         log.info("Login successful for venue: {}", user.getUsername());
 
         return ResponseEntity.ok(token);
