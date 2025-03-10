@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
+@Slf4j
 public class KafkaProducerConfig {
 
     @Value(value = "${spring.kafka.bootstrap-servers}")
@@ -33,7 +34,9 @@ public class KafkaProducerConfig {
     }
 
     @Bean
-    public KafkaTemplate<String,UserCreatedEvent> kafkaTemplate(){
+    public KafkaTemplate<String, UserCreatedEvent> kafkaTemplate() {
         return new KafkaTemplate<>(producerCreateEvents());
     }
+
+
 }

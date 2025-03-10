@@ -1,5 +1,6 @@
 package com.karam.teamup.authentication.services;
 
+import com.karam.teamup.authentication.cookie.CookieUtil;
 import com.karam.teamup.authentication.dto.ChangePasswordRequest;
 import com.karam.teamup.authentication.dto.UserCreatedEvent;
 import com.karam.teamup.authentication.dto.UserLoginDTO;
@@ -10,7 +11,9 @@ import com.karam.teamup.authentication.exception.EmailAlreadyExistException;
 import com.karam.teamup.authentication.exception.InvalidCredentialsException;
 import com.karam.teamup.authentication.exception.UserNameAlreadyExist;
 import com.karam.teamup.authentication.jwt.JWTService;
+import com.karam.teamup.authentication.kafka.KafkaEventService;
 import com.karam.teamup.authentication.repositories.UserRepository;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,14 +31,12 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class VenueService {
-
-    @Value("${my.kafka.topic.name}")
-    private String topicName;
     private final JWTService jwtService;
+    private final CookieUtil cookieUtil;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final KafkaEventService kafkaEventService;
     private final AuthenticationManager authenticationManager;
-    private final KafkaTemplate<String, UserCreatedEvent> kafkaTemplate;
 
     public ResponseEntity<String> createVenue(UserRegistrationDTO registrationDTO) {
         log.info("Attempting to register venue: {}", registrationDTO.username());
@@ -61,17 +62,20 @@ public class VenueService {
 
         log.info("Venue successfully registered: {}", venueToBeSaved.getUsername());
 
-        UserCreatedEvent venueToBeSendByKafkaToVenueService = new UserCreatedEvent(venueToBeSaved.getUserId(),
+        UserCreatedEvent venueToBeSendByKafkaToVenueService = new UserCreatedEvent(
+                venueToBeSaved.getUserId(),
                 venueToBeSaved.getUsername(),
-                venueToBeSaved.getEmail());
-        kafkaTemplate.send(topicName, venueToBeSendByKafkaToVenueService);
+                venueToBeSaved.getEmail(),
+                venueToBeSaved.getRole()
+        );
+        kafkaEventService.sendUserCreatedEvent(venueToBeSendByKafkaToVenueService);
         log.info("Sending venue event: {}", venueToBeSendByKafkaToVenueService);
 
         return new ResponseEntity<>("🎊 Welcome aboard! Your venue account is created." +
                 " Please check your email to verify and start your journey! 🚀", HttpStatus.CREATED);
     }
 
-    public ResponseEntity<String> login(UserLoginDTO userLoginDTO) {
+    public ResponseEntity<String> login(UserLoginDTO userLoginDTO, HttpServletResponse response) {
         log.info("Attempting login for email: {}", userLoginDTO.email());
 
         User user = userRepository.findUserByEmail(userLoginDTO.email())
@@ -84,8 +88,10 @@ public class VenueService {
                 new UsernamePasswordAuthenticationToken(user.getUsername(), userLoginDTO.password())
         );
 
-        String token = jwtService.generateAccessToken(user.getUsername(), String.valueOf(Role.VENUE)); // Use VENUE role here
+        String token = jwtService.generateAccessToken(user.getUsername(), String.valueOf(Role.VENUE));
         log.info("Login successful for venue: {}", user.getUsername());
+
+        cookieUtil.addAuthTokenCookie(response, token);
 
         return ResponseEntity.ok(token);
     }

@@ -29,10 +29,9 @@ public class PlayerService {
 
     private final PlayerRepository playerRepository;
     private final PlayerProfileMapper playerProfileMapper;
-
-    private static final String UPLOAD_DIR = "/home/karam/IdeaProjects/TeamUp/player-service/uploads";
     private static final long MAX_FILE_SIZE = 5 * 1024L * 1024; // 5MB
     public static final String PLAYER_NOT_FOUND = "Player not found";
+    private static final String UPLOAD_DIR = "/home/karam/IdeaProjects/TeamUp/player-service/uploads";
 
 
     @Transactional(readOnly = true)
@@ -44,7 +43,7 @@ public class PlayerService {
             throw new PlayerNotFoundException(PLAYER_NOT_FOUND);
         });
 
-        log.info("Player profile found: {}", username);
+        log.info("Player profile found: {} 🎉🎉🎉🎉🎉🎉", username);
         return ResponseEntity.ok(playerProfileMapper.toDTO(player));
     }
 
@@ -57,7 +56,7 @@ public class PlayerService {
         });
 
         playerRepository.delete(player);
-        log.info("Player account deleted: {}", username);
+        log.info("Player account deleted: {} 🎉🎉🎉🎉🎉🎉", username);
 
         return new ResponseEntity<>("Account deleted successfully", HttpStatus.OK);
     }
@@ -71,7 +70,7 @@ public class PlayerService {
             throw new PlayerNotFoundException(PLAYER_NOT_FOUND);
         });
 
-        log.info("Profile found for player: {}", username);
+        log.info("Profile found for player: {} 🎉🎉🎉🎉🎉🎉", username);
         return ResponseEntity.ok(playerProfileMapper.toDTO(player));
     }
 
@@ -87,7 +86,7 @@ public class PlayerService {
         playerProfileMapper.updatePlayerProfile(player, updatePlayerProfileDTO);
         playerRepository.save(player);
 
-        log.info("Profile updated successfully for player: {}", username);
+        log.info("Profile updated successfully for player: {} 🎉🎉🎉🎉🎉🎉", username);
         return new ResponseEntity<>("Profile updated successfully", HttpStatus.OK);
     }
 

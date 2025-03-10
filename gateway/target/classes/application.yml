@@ -13,6 +13,12 @@ spring:
          uri: lb://AUTHENTICATION-SERVICE
          predicates:
            - Path=/auth/**
+       - id: venue-service
+         uri: lb://VENUE-SERVICE
+         predicates:
+           - Path=/api/v1/venue/**
+         filters:
+           - AuthenticationFilter
 
  application:
    name: api-gateway
@@ -21,4 +27,5 @@ eureka:
   client:
     service-url:
       defaultZone : http://localhost:8761/eureka/
+
 

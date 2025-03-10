@@ -9,13 +9,23 @@ import org.springframework.kafka.config.TopicBuilder;
 @Configuration
 public class KafkaTopicConfig {
 
-    @Value("${my.kafka.topic.name}")
-    private String topicName;
+    @Value("${player.kafka.topic.name}")
+    private String playerTopicName;
+
+    @Value("${venue.kafka.topic.name}")
+    private String venueTopicName;
 
     @Bean
-    public NewTopic usersTopic() {
+    public NewTopic playerTopic() {
         return TopicBuilder
-                .name(topicName)
+                .name(playerTopicName)
+                .build();
+    }
+
+    @Bean
+    public NewTopic venueTopic() {
+        return TopicBuilder
+                .name(venueTopicName)
                 .build();
     }
 }

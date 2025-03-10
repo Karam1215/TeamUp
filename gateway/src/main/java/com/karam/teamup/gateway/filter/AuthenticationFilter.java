@@ -78,7 +78,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
         });
     }
 
-    // Try to retrieve the JWT token from cookies
+    // Try to retrieve theplayer JWT token from cookies
     private String getTokenFromCookies(ServerHttpRequest request) {
         if (request.getCookies().containsKey("auth_token")) {
             return Objects.requireNonNull(request.getCookies().getFirst("auth_token")).getValue();
@@ -89,6 +89,8 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     private List<String> getRequiredRolesForRoute(String requestPath) {
         if (requestPath.startsWith("/api/v1/player")) {
             return List.of("ROLE_USER", "ROLE_ADMIN");
+        } else if (requestPath.startsWith("/api/v1/venue")) {
+            return List.of("ROLE_VENUE");
         }
         return List.of("ROLE_USER");
     }

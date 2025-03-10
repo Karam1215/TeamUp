@@ -1,7 +1,7 @@
-package com.karam.teamup.player.services;
+package com.karam.teamup.player.kafka;
 
 import com.karam.teamup.player.dto.UserCreatedEvent;
-import com.karam.teamup.player.repositories.PlayerRepository;
+import com.karam.teamup.player.services.PlayerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -15,8 +15,8 @@ public class KafkaListeners {
     private final PlayerService playerService;
 
     @KafkaListener(
-            topics = "user-created-topic",
-            groupId = "player-service-grwoup"
+            topics = "player-created-topic",
+            groupId = "player-service-group"
     )
      public void handleUserCreatedEvent(UserCreatedEvent event) {
       log.info("Received data: {}", event);

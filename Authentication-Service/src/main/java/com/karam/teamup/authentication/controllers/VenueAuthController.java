@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,9 +54,9 @@ public class VenueAuthController {
             )),
             @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid credentials", content = @Content)
     })
-    public ResponseEntity<String> login(@Valid @RequestBody UserLoginDTO userLoginDTO) {
+    public ResponseEntity<String> login(@Valid @RequestBody UserLoginDTO userLoginDTO, HttpServletResponse response) {
         log.info("Login attempt for: {}", userLoginDTO.email());
-        return venueService.login(userLoginDTO);
+        return venueService.login(userLoginDTO, response);
     }
 
     @GetMapping("/validate")

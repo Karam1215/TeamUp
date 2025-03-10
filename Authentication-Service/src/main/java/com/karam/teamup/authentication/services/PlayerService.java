@@ -11,6 +11,7 @@ import com.karam.teamup.authentication.exception.EmailAlreadyExistException;
 import com.karam.teamup.authentication.exception.InvalidCredentialsException;
 import com.karam.teamup.authentication.exception.UserNameAlreadyExist;
 import com.karam.teamup.authentication.jwt.JWTService;
+import com.karam.teamup.authentication.kafka.KafkaEventService;
 import com.karam.teamup.authentication.repositories.UserRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ValidationException;
@@ -31,15 +32,13 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class PlayerService {
 
-    @Value("${my.kafka.topic.name}")
-    private String topicName;
     private final JWTService jwtService;
+    private final CookieUtil cookieUtil;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final CookieUtil cookieUtil;
+    private final KafkaEventService kafkaEventService;
     private final AuthenticationManager authenticationManager;
-    private final KafkaTemplate<String, UserCreatedEvent> kafkaTemplate;
-    
+
     public ResponseEntity<String> createPlayer(UserRegistrationDTO registrationDTO) {
         log.info("Attempting to register player: {}", registrationDTO.username());
 
@@ -66,15 +65,17 @@ public class PlayerService {
 
         UserCreatedEvent userToBeSendByKafkaToPlayerService = new UserCreatedEvent(userToBeSaved.getUserId(),
                 userToBeSaved.getUsername(),
-                userToBeSaved.getEmail());
-        kafkaTemplate.send(topicName, userToBeSendByKafkaToPlayerService);
+                userToBeSaved.getEmail(),
+                userToBeSaved.getRole());
+
+        kafkaEventService.sendUserCreatedEvent(userToBeSendByKafkaToPlayerService);
         log.info("Sending user event: {}", userToBeSendByKafkaToPlayerService);
 
         return new ResponseEntity<>("🎊 Welcome aboard! Your account is created." +
                 " Please check your email to verify and start your journey! 🚀", HttpStatus.CREATED);
     }
 
-    public ResponseEntity<String> login(UserLoginDTO userLoginDTO, HttpServletResponse response) {
+        public ResponseEntity<String> login(UserLoginDTO userLoginDTO, HttpServletResponse response) {
         log.info("Attempting login for email: {}", userLoginDTO.email());
 
         User user = userRepository.findUserByEmail(userLoginDTO.email())
