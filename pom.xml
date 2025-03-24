@@ -17,6 +17,7 @@
     <module>gateway</module>
     <module>Authentication-Service</module>
     <module>venue-service</module>
+      <module>match-service</module>
   </modules>
 
   <properties>

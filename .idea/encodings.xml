@@ -7,6 +7,8 @@
     <file url="file://$PROJECT_DIR$/eureka-server/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/gateway/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/gateway/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/match-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/match-service/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/player-service/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/player-service/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />

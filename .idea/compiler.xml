@@ -12,6 +12,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="player-service" />
         <module name="Authentication-Service" />
+        <module name="match-service" />
         <module name="eureka-server" />
         <module name="venue-service" />
         <module name="apigatway" />

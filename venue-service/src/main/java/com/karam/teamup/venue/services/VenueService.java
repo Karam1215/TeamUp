@@ -23,6 +23,7 @@ public class VenueService {
     private final VenueProfileMapper venueProfileMapper;
     public static final String VENUE_NOT_FOUND = "Venue not found";
 
+
     public ResponseEntity<String> createVenue(UserCreatedEvent userCreatedEvent) {
 
         Venue venue = Venue.builder()
@@ -35,7 +36,7 @@ public class VenueService {
 
         log.info("Venue created successfully for: {} 🎉🎉🎉🎉🎉🎉🎉🎉🎉🎉", venue.getName());
 
-        return new ResponseEntity<>("Profile Created successfully",HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Venue created successfully");
     }
 
     public ResponseEntity<String> updateVenueProfile(UpdateVenueProfileDTO updateVenueProfileDTO,

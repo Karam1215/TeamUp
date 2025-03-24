@@ -1,0 +1,7 @@
+${AnsiColor.BRIGHT_BLUE}.------.    ${AnsiColor.GREEN}  ,--.   ,--.  ,---. ,--------.,-----.,--.  ,--.        ,---. ,------.,------.,--.   ,--.,--. ,-----.,------.     ${AnsiColor.RED}.------.
+${AnsiColor.BRIGHT_BLUE}|K.--. |    ${AnsiColor.GREEN}  |   `.'   | /  O  \'--.  .--'  .--./|  '--'  |,-----.'   .-'|  .---'|  .--. '\  `.'  / |  |'  .--./|  .---'     ${AnsiColor.RED}|K.--. |
+${AnsiColor.BRIGHT_BLUE}| (\/) |    ${AnsiColor.GREEN}  |  |'.'|  ||  .-.  |  |  |  |  |    |  .--.  |'-----'`.  `-.|  `--, |  '--'.' \     /  |  ||  |    |  `--,      ${AnsiColor.RED}| (\/) |
+${AnsiColor.BRIGHT_BLUE}| :\/: |    ${AnsiColor.GREEN}  |  |   |  ||  | |  |  |  |  '  '--'\|  |  |  |       .-'    |  `---.|  |\  \   \   /   |  |'  '--'\|  `---.     ${AnsiColor.RED}| :\/: |
+${AnsiColor.BRIGHT_BLUE}| '--'K|    ${AnsiColor.GREEN}  `--'   `--'`--' `--'  `--'   `-----'`--'  `--'       `-----'`------'`--' '--'   `-'    `--' `-----'`------'     ${AnsiColor.RED}| '--'K|
+${AnsiColor.BRIGHT_BLUE}`------'    ${AnsiColor.GREEN}                                                                                                                  ${AnsiColor.RED}`------'
+

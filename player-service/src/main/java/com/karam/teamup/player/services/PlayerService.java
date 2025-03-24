@@ -38,7 +38,7 @@ public class PlayerService {
     public ResponseEntity<PlayerProfileDTO> getPlayerByUsername(String username) {
         log.info("Fetching player profile for username: {}", username);
 
-        Player player = playerRepository.findPlayerByUserName(username).orElseThrow(() -> {
+        Player player = playerRepository.findPlayerByUsername(username).orElseThrow(() -> {
             log.warn("Player not found: {}", username);
             throw new PlayerNotFoundException(PLAYER_NOT_FOUND);
         });
@@ -50,7 +50,7 @@ public class PlayerService {
     public ResponseEntity<String> deletePlayerByUsername(String username) {
         log.info("Attempting to delete account for: {}", username);
 
-        Player player = playerRepository.findPlayerByUserName(username).orElseThrow(() -> {
+        Player player = playerRepository.findPlayerByUsername(username).orElseThrow(() -> {
             log.warn("Player not found for deletion: {}", username);
             throw new PlayerNotFoundException(PLAYER_NOT_FOUND);
         });
@@ -65,7 +65,7 @@ public class PlayerService {
         //String username = authentication.getName();
         log.info("Fetching profile for player: {}", username);
 
-        Player player = playerRepository.findPlayerByUserName(username).orElseThrow(() -> {
+        Player player = playerRepository.findPlayerByUsername(username).orElseThrow(() -> {
             log.warn("Player not found: {}", username);
             throw new PlayerNotFoundException(PLAYER_NOT_FOUND);
         });
@@ -78,7 +78,7 @@ public class PlayerService {
                                                       String username) {
         log.info("Updating profile for player: {}", username);
 
-        Player player = playerRepository.findPlayerByUserName(username).orElseThrow(() -> {
+        Player player = playerRepository.findPlayerByUsername(username).orElseThrow(() -> {
             log.warn("Player not found for profile update: {}", username);
              throw new PlayerNotFoundException(PLAYER_NOT_FOUND);
         });
@@ -93,7 +93,7 @@ public class PlayerService {
     public ResponseEntity<String> uploadProfilePicture(MultipartFile file, String username) {
         log.info("Uploading profile picture for player: {}", username);
 
-        Player player = playerRepository.findPlayerByUserName(username).orElseThrow(() -> {
+        Player player = playerRepository.findPlayerByUsername(username).orElseThrow(() -> {
             log.warn("Player not found for profile picture upload: {}", username);
             return new PlayerNotFoundException(PLAYER_NOT_FOUND);
         });
@@ -154,7 +154,7 @@ public class PlayerService {
     public ResponseEntity<String> createPlayer(UserCreatedEvent userCreatedEvent) {
         Player player = Player.builder()
                 .playerId(userCreatedEvent.userId())
-                .userName(userCreatedEvent.username())
+                .username(userCreatedEvent.username())
                 .email(userCreatedEvent.email())
                 .build();
         playerRepository.save(player);

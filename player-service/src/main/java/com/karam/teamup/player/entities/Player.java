@@ -29,7 +29,7 @@ public class Player {
     @Column(name = "user_name", nullable = false, unique = true)
     @Size(min = 1, max = 100, message = "Username should be between 1 and 100 characters.")
     @Schema(name = "name", example = "Karam", requiredMode = Schema.RequiredMode.REQUIRED, description = "Username. Should be between 1 and 100 characters.")
-    private String userName;
+    private String username;
 
     @Column(name = "first_name")
     private String firstName;
@@ -58,7 +58,7 @@ public class Player {
     //TODO @Enumerated(EnumType.STRING)
     @Column(name = "gender")
     @Schema(name = "gender", example = "MALE", description = "Player's gender. Examples: 'MALE', 'FEMALE'.")
-    private String gender;  //TODO Enum for gender
+    private String gender;
 
     @Column(name = "city")
     @Schema(name = "gender", example = "MALE", description = "Player's city. Examples: 'Kazan', 'Moscow'.")
@@ -85,4 +85,9 @@ public class Player {
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
     }
+
+    @ManyToOne
+    @JoinColumn(name = "team_id")
+    private Team team;
+
 }

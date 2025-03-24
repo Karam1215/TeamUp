@@ -49,11 +49,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(value = VenueNotFoundException.class)
     public ResponseEntity<Object> playerNotFound(VenueNotFoundException e) {
-        log.warn("Player not found: {}", e.getMessage());
+        log.warn("Venue not found: {}", e.getMessage());
 
         // Create a CustomizeException object with a user-friendly message
         CustomizeException customizeException = new CustomizeException(
-                "Player not found with the given identifier", // A more user-friendly message
+                "Venue not found with the given identifier", // A more user-friendly message
                 HttpStatus.NOT_FOUND,
                 ZonedDateTime.now()
         );

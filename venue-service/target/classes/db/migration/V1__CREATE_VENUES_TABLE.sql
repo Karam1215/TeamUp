@@ -10,5 +10,5 @@ CREATE TABLE IF NOT EXISTS venues(
     email VARCHAR(100),
     opening_time TIME,
     closing_time TIME,
-    created_at timestamp
+    created_at TIMESTAMP
 )
