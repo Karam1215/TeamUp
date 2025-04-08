@@ -4,95 +4,79 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
-import java.time.LocalDate;
-import java.time.LocalTime;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalDateTime;
 import java.util.UUID;
 
-/**
- * Represents the availability and booking status of a field for a specific time slot.
- */
-@Data
 @Entity
+@Table(name = "field_availability")
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "field_availability")
-@Schema(description = "Entity representing the availability of a field for a specific time slot.")
+@Schema(description = "Entity representing a field booking time slot")
 public class FieldAvailability {
 
     @Id
     @GeneratedValue
-    @Column(name = "availability_id", nullable = false, updatable = false)
-    @Schema(
-        description = "Unique identifier for the availability slot.",
-        example = "550e8400-e29b-41d4-a716-446655440000",
-        requiredMode = Schema.RequiredMode.REQUIRED
-    )
-    private UUID availabilityId;
+    @Column(name = "booking_id", updatable = false)
+    @Schema(description = "Unique identifier for the booking",
+            example = "550e8400-e29b-41d4-a716-446655440000")
+    private UUID bookingId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "field_id", nullable = false)
     @NotNull(message = "Field must be specified")
-    @Schema(
-        description = "The field to which this availability slot belongs.",
-        requiredMode = Schema.RequiredMode.REQUIRED
-    )
+    @Schema(description = "The field being booked", requiredMode = Schema.RequiredMode.REQUIRED)
     private Field field;
 
-    @Column(nullable = false)
-    @NotNull(message = "Date cannot be null")
-    @FutureOrPresent(message = "Date must be today or in the future")
-    @Schema(
-        description = "Date of the availability slot (format: yyyy-MM-dd).",
-        example = "2024-03-20",
-        requiredMode = Schema.RequiredMode.REQUIRED
-    )
-    private LocalDate date;
+    @Column(name = "match_id")
+    @Schema(description = "User who made the booking")
+    private UUID match_id;
 
     @Column(name = "start_time", nullable = false)
     @NotNull(message = "Start time cannot be null")
-    @Schema(
-        description = "Start time of the slot (format: HH:mm:ss).",
-        example = "09:00:00",
-        requiredMode = Schema.RequiredMode.REQUIRED
-    )
-    private LocalTime startTime;
+    @FutureOrPresent(message = "Start time must be in the future")
+    @Schema(description = "Booking start time (UTC)",
+            example = "2024-03-20T09:00:00")
+    private LocalDateTime startTime;
 
     @Column(name = "end_time", nullable = false)
     @NotNull(message = "End time cannot be null")
-    @Schema(
-        description = "End time of the slot (format: HH:mm:ss).",
-        example = "10:00:00",
-        requiredMode = Schema.RequiredMode.REQUIRED
-    )
-    private LocalTime endTime;
+    @Future(message = "End time must be in the future")
+    @Schema(description = "Booking end time (UTC)",
+            example = "2024-03-20T10:00:00")
+    private LocalDateTime endTime;
 
     @Column(nullable = false)
     @NotBlank(message = "Status cannot be blank")
-    @Pattern(regexp = "AVAILABLE|BOOKED", message = "Status must be 'AVAILABLE' or 'BOOKED'")
-    @Schema(
-        description = "Current status of the slot.",
-        allowableValues = {"AVAILABLE", "BOOKED"},
-        example = "AVAILABLE",
-        requiredMode = Schema.RequiredMode.REQUIRED
-    )
+    @Pattern(regexp = "CONFIRMED|PENDING|CANCELLED",
+            message = "Status must be CONFIRMED, PENDING, or CANCELLED")
+    @Schema(description = "Booking status",
+            allowableValues = {"CONFIRMED", "PENDING", "CANCELLED"},
+            example = "PENDING")
     private String status;
 
-    @Column(name = "match_id")
-    @Schema(
-        description = "ID of the match associated with this booking (if status is BOOKED).",
-        example = "550e8400-e29b-41d4-a716-446655440000",
-        requiredMode = Schema.RequiredMode.AUTO
-    )
-    private UUID matchId;
+    @Column(name = "created_at", updatable = false)
+    @CreationTimestamp
+    @Schema(description = "Timestamp of booking creation")
+    private LocalDateTime createdAt;
 
-    @AssertTrue(message = "Match ID is required when status is BOOKED")
-    private boolean isValidMatchId() {
-        return !"BOOKED".equals(status) || (matchId != null);
-    }
+    @Column(name = "updated_at")
+    @UpdateTimestamp
+    @Schema(description = "Timestamp of last update")
+    private LocalDateTime updatedAt;
 
     @AssertTrue(message = "End time must be after start time")
     private boolean isValidTimeRange() {
         return endTime.isAfter(startTime);
+    }
+
+    @AssertTrue(message = "match_id must be specified for confirmed bookings")
+    private boolean isValidMatchAssociation() {
+        return !"CONFIRMED".equals(status) || (match_id != null);
     }
 }

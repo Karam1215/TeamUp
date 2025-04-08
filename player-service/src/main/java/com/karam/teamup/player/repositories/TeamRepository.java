@@ -12,6 +12,5 @@ import java.util.UUID;
 @Repository
 public interface TeamRepository extends JpaRepository<Team, UUID> {
     Optional<Team> findByName(String name);
-
     List<Team> findByName(String name, Sort sort);
 }

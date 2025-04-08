@@ -2,6 +2,7 @@ package com.karam.teamup.venue.services;
 
 import com.karam.teamup.venue.dto.UpdateVenueProfileDTO;
 import com.karam.teamup.venue.dto.UserCreatedEvent;
+import com.karam.teamup.venue.entities.Field;
 import com.karam.teamup.venue.entities.Venue;
 import com.karam.teamup.venue.exceptions.VenueNotFoundException;
 import com.karam.teamup.venue.mappers.VenueProfileMapper;
@@ -12,6 +13,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service

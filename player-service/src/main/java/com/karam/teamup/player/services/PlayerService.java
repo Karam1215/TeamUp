@@ -15,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -32,7 +31,6 @@ public class PlayerService {
     private static final long MAX_FILE_SIZE = 5 * 1024L * 1024; // 5MB
     public static final String PLAYER_NOT_FOUND = "Player not found";
     private static final String UPLOAD_DIR = "/home/karam/IdeaProjects/TeamUp/player-service/uploads";
-
 
     @Transactional(readOnly = true)
     public ResponseEntity<PlayerProfileDTO> getPlayerByUsername(String username) {
@@ -94,7 +92,8 @@ public class PlayerService {
         log.info("Uploading profile picture for player: {}", username);
 
         Player player = playerRepository.findPlayerByUsername(username).orElseThrow(() -> {
-            log.warn("Player not found for profile picture upload: {}", username);
+            log.warn("Player not found for profile pict" +
+                    "ure upload: {}", username);
             return new PlayerNotFoundException(PLAYER_NOT_FOUND);
         });
 

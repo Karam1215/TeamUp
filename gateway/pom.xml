@@ -9,13 +9,31 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
+    <build>
+        <finalName>gateway</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>3.2.2</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+
     <artifactId>apigatway</artifactId>
 
     <properties>
-        <maven.compiler.source>23</maven.compiler.source>
-        <maven.compiler.target>23</maven.compiler.target>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring-cloud.version>2024.0.0</spring-cloud.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -53,4 +71,5 @@
             <version>0.12.6</version>
         </dependency>
     </dependencies>
+
 </project>

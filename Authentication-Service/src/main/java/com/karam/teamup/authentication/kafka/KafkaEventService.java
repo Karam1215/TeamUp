@@ -51,6 +51,7 @@ public class KafkaEventService {
                     .userId(userCreatedEvent.userId())
                     .username(userCreatedEvent.username())
                     .email(userCreatedEvent.email())
+                    .role(userCreatedEvent.role())
                     .build();
             failedEventRepository.save(failedEvent);
 

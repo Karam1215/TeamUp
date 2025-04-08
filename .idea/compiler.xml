@@ -12,15 +12,24 @@
         <outputRelativeToContentRoot value="true" />
         <module name="player-service" />
         <module name="Authentication-Service" />
-        <module name="match-service" />
         <module name="eureka-server" />
         <module name="venue-service" />
         <module name="apigatway" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
+      <module name="match-service" target="21" />
       <module name="service-registry" target="21" />
       <module name="team-service" target="21" />
     </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="Authentication-Service" options="" />
+      <module name="apigatway" options="" />
+      <module name="eureka-server" options="" />
+      <module name="player-service" options="" />
+      <module name="venue-service" options="" />
+    </option>
   </component>
 </project>

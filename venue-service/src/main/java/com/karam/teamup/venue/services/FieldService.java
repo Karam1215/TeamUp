@@ -12,6 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.UUID;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -44,4 +47,10 @@ public class FieldService {
 
         return ResponseEntity.status(HttpStatus.CREATED).body("Field created successfully");
     }
+
+    public ResponseEntity<List<Field>> getFieldsByVenue(UUID venueId) {
+        log.info("Get fields by venue: {}", venueId);
+        return ResponseEntity.ok(fieldRepository.findByVenue_VenueId(venueId));
+    }
+
 }

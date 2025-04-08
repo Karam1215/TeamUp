@@ -1,0 +1,6 @@
+/home/karam/IdeaProjects/TeamUp/gateway/src/main/java/com/karam/teamup/gateway/filter/AuthenticationFilter.java
+/home/karam/IdeaProjects/TeamUp/gateway/src/main/java/com/karam/teamup/gateway/jwt/JwtUtil.java
+/home/karam/IdeaProjects/TeamUp/gateway/src/main/java/com/karam/teamup/gateway/exception/UnauthorizedAccessException.java
+/home/karam/IdeaProjects/TeamUp/gateway/src/main/java/com/karam/teamup/gateway/route/RouteValidator.java
+/home/karam/IdeaProjects/TeamUp/gateway/src/main/java/com/karam/teamup/gateway/ApiGatewayApplication.java
+/home/karam/IdeaProjects/TeamUp/gateway/src/main/java/com/karam/teamup/gateway/exception/GlobalExceptionHandler.java
