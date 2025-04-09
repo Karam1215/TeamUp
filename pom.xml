@@ -65,14 +65,20 @@
   </dependencies>
 
   <build>
-    <pluginManagement><!-- lock down plugins versions to avoid using Maven defaults (may be moved to parent pom) -->
-      <plugins>
-        <plugin>
+    <finalName>venue-service</finalName>
+    <plugins>
+      <plugin>
         <groupId>org.springframework.boot</groupId>
-          <artifactId>spring-boot-maven-plugin</artifactId>
-          <version>${spring.boot.maven.plugin.version}</version>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <version>3.2.2</version>
+            <executions>
+                <execution>
+                    <goals>
+                        <goal>repackage</goal>
+                    </goals>
+                </execution>
+            </executions>
         </plugin>
-      </plugins>
-    </pluginManagement>
+    </plugins>
   </build>
 </project>

@@ -1,5 +1,17 @@
 services:
 
+  venue-db:
+    image: postgres:latest
+    ports:
+      - "5437:5432"
+    environment:
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./venue-service/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    networks:
+      - micro-net
+
   auth-db:
     image: postgres:latest
     ports:
@@ -106,6 +118,24 @@ services:
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
 
+  venue-service:
+    build:
+      context: .
+      dockerfile: venue-service/Dockerfile
+    ports:
+      - "8084"
+    depends_on:
+      - venue-db
+      - eureka
+    networks:
+      - micro-net
+    environment:
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://venue-db:5432/venue_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+
 networks:
-  micro-net:  # Explicit network
+  micro-net:
     driver: bridge
