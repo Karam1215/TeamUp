@@ -40,6 +40,8 @@ services:
       - "2181:2181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
+    networks:
+      - micro-net
 
   kafka:
     image: wurstmeister/kafka:latest
@@ -52,6 +54,9 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
     depends_on:
       - zookeeper
+    networks:
+      - micro-net
+
 
   player-db:
     image: postgres:latest
@@ -77,6 +82,7 @@ services:
     networks:
       - micro-net
     environment:
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
       - SPRING_DATASOURCE_URL=jdbc:postgresql://auth-db:5432/user_auth_db
       - SPRING_DATASOURCE_USERNAME=postgres
@@ -94,6 +100,7 @@ services:
     networks:
       - micro-net
     environment:
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
       - SPRING_DATASOURCE_URL=jdbc:postgresql://player-db:5432/player_db
       - SPRING_DATASOURCE_USERNAME=postgres

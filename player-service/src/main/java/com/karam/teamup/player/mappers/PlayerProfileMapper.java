@@ -9,7 +9,7 @@ import org.mapstruct.*;
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING,
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface PlayerProfileMapper {
-    @Mapping(target = "firstName", source = "firstName")
+    @Mapping(target = "username", source = "username")
     @Mapping(target = "lastName", source = "lastName")
     @Mapping(target = "birthDate", source = "birthDate")
     @Mapping(target = "gender", source = "gender")
