@@ -89,4 +89,6 @@ public class PlayerController {
         log.info("Deleting player: {}", username);
         return playerService.deletePlayerByUsername(username);
     }
+
+
 }

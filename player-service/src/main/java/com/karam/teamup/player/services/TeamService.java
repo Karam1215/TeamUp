@@ -26,6 +26,7 @@ public class TeamService {
 
     private final TeamRepository teamRepository;
     private final PlayerRepository playerRepository;
+    protected static final String TEAM_NOT_FOUND = "Team not found";
 
     @Transactional
     public ResponseEntity<String> createTeam(String username,CreateTeamRequest requestDTO) {

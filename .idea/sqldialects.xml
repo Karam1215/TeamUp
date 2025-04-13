@@ -3,7 +3,7 @@
   <component name="SqlDialectMappings">
     <file url="file://$PROJECT_DIR$/match-service/src/main/resources/db/migration/V2__CREATE_MATCHES_TABLE.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/player-service/docker-entrypoint-initdb.d/init.sql" dialect="PostgreSQL" />
-    <file url="file://$PROJECT_DIR$/venue-service/src/main/resources/db/migration/V3_CREATE_FIELD_AVIALABELITY_TABLE.sql" dialect="PostgreSQL" />
+    <file url="file://$PROJECT_DIR$/venue-service/src/main/resources/db/migration/V3__CREATE_FIELD_AVIALABELITY_TABLE.sql" dialect="PostgreSQL" />
     <file url="PROJECT" dialect="PostgreSQL" />
   </component>
 </project>

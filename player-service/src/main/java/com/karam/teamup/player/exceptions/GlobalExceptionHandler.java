@@ -64,14 +64,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Object> playerNotFound(PlayerNotFoundException e) {
         log.warn("Player not found: {}", e.getMessage());
 
-        // Create a CustomizeException object with a user-friendly message
         CustomizeException customizeException = new CustomizeException(
-                "Player not found with the given identifier", // A more user-friendly message
+                "Player not found with the given identifier",
                 HttpStatus.NOT_FOUND,
                 ZonedDateTime.now()
         );
 
-        // Optionally, log the stack trace for internal purposes
         log.warn("Error details: {}", e.getMessage());
 
         // Return the structured response
@@ -131,4 +129,61 @@ public class GlobalExceptionHandler {
         );
         return new ResponseEntity<>(customizeException, HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler(DuplicateInvitationException.class)
+    public ResponseEntity<Object> DuplicateInvitationException(DuplicateInvitationException e) {
+        log.warn("Duplicate Invitation Exception", e.getMessage());
+
+        CustomizeException customizeException = new CustomizeException(
+                e.getMessage(),
+                HttpStatus.BAD_REQUEST,
+                ZonedDateTime.now()
+        );
+        return new ResponseEntity<>(customizeException, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(value = TeamNotFoundException.class)
+    public ResponseEntity<Object> TeamNotFound(TeamNotFoundException e) {
+
+        CustomizeException customizeException = new CustomizeException(
+                "Team not found with the given identifier",
+                HttpStatus.NOT_FOUND,
+                ZonedDateTime.now()
+        );
+
+        log.warn("Team not found: {}", e.getMessage());
+
+        return new ResponseEntity<>(customizeException, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(value = PlayerIsNotLeaderException.class)
+    public ResponseEntity<Object> playerIsNotLeader(PlayerIsNotLeaderException e) {
+
+        CustomizeException customizeException = new CustomizeException(
+                "You are not a Team Leader",
+                HttpStatus.FORBIDDEN,
+                ZonedDateTime.now()
+        );
+
+        // Optionally, log the stack trace for internal purposes
+        log.warn("Not allowed: {}", e.getMessage());
+
+        // Return the structured response
+        return new ResponseEntity<>(customizeException, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(value = AccessDeniedException.class)
+    public ResponseEntity<Object> accessDeniedException(AccessDeniedException e) {
+
+        CustomizeException customizeException = new CustomizeException(
+                "Not allowed to access this resource",
+                HttpStatus.FORBIDDEN,
+                ZonedDateTime.now()
+        );
+
+        log.warn("Not allowed to access this resource {}", e.getMessage());
+
+        return new ResponseEntity<>(customizeException, HttpStatus.FORBIDDEN);
+    }
+
 }

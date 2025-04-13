@@ -29,7 +29,7 @@ public class PlayerService {
     private final PlayerRepository playerRepository;
     private final PlayerProfileMapper playerProfileMapper;
     private static final long MAX_FILE_SIZE = 5 * 1024L * 1024; // 5MB
-    public static final String PLAYER_NOT_FOUND = "Player not found";
+    protected static final String PLAYER_NOT_FOUND = "Player not found";
     private static final String UPLOAD_DIR = "/home/karam/IdeaProjects/TeamUp/player-service/uploads";
 
     @Transactional(readOnly = true)
