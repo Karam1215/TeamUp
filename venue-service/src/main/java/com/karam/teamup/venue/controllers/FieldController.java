@@ -1,5 +1,4 @@
 package com.karam.teamup.venue.controllers;
-
 import com.karam.teamup.venue.dto.CreateFieldDTO;
 import com.karam.teamup.venue.services.FieldService;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -19,7 +18,8 @@ public class FieldController {
     private final FieldService fieldService;
 
     @PostMapping
-    public ResponseEntity<String> createField(@Valid @RequestBody CreateFieldDTO fieldDTO,@RequestHeader("X-Username") String username) {
+    public ResponseEntity<String> createField(@RequestHeader("X-Username") String username,
+                                              @Valid @RequestBody CreateFieldDTO fieldDTO) {
         log.info("Getting creating-field request for field: {}", fieldDTO);
         return fieldService.createField(fieldDTO, username);
     }

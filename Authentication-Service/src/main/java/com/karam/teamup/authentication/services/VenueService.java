@@ -1,6 +1,6 @@
 package com.karam.teamup.authentication.services;
 
-import com.karam.teamup.authentication.cookie.CookieUtil;
+import com.karam.teamup.authentication.cookies.CookieUtil;
 import com.karam.teamup.authentication.dto.ChangePasswordRequest;
 import com.karam.teamup.authentication.dto.UserCreatedEvent;
 import com.karam.teamup.authentication.dto.UserLoginDTO;
@@ -17,10 +17,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;

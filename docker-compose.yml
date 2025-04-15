@@ -1,5 +1,17 @@
 services:
 
+  matchmaking-db:
+    image: postgres:latest
+    ports:
+      - "5439:5432"
+    environment:
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./match-service/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    networks:
+      - micro-net
+
   venue-db:
     image: postgres:latest
     ports:
@@ -31,7 +43,7 @@ services:
     ports:
       - "8761:8761"
     networks:
-      - micro-net  # Same network for all services
+      - micro-net
 
   api-gateway:
     build:
@@ -42,7 +54,7 @@ services:
     depends_on:
       - eureka
     networks:
-      - micro-net  # Same network
+      - micro-net
     environment:
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
 
@@ -133,6 +145,23 @@ services:
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
       - SPRING_DATASOURCE_URL=jdbc:postgresql://venue-db:5432/venue_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+
+  match-making-service:
+    build:
+      context: ./match-making
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./match-making:/app
+    depends_on:
+      - matchmaking-db
+    networks:
+      - micro-net
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://matchmaking-db:5432/matchmaking-db
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
 

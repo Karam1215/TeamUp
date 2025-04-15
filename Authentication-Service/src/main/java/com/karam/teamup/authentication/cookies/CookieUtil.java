@@ -1,4 +1,4 @@
-package com.karam.teamup.authentication.cookie;
+package com.karam.teamup.authentication.cookies;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
