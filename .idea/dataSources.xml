@@ -40,10 +40,9 @@
       </jdbc-additional-properties>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
-    <data-source source="LOCAL" name="matches_db@localhost" uuid="ed24687f-1b27-4669-9792-e293aa269fa7">
+    <data-source source="LOCAL" name="matches_db@localhost" uuid="1d58eade-2e19-42aa-89e4-bc29a8bad103">
       <driver-ref>postgresql</driver-ref>
       <synchronize>true</synchronize>
-      <imported>true</imported>
       <jdbc-driver>org.postgresql.Driver</jdbc-driver>
       <jdbc-url>jdbc:postgresql://localhost:5439/matches_db</jdbc-url>
       <jdbc-additional-properties>

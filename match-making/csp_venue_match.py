@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timedelta, time
 from flask import Flask, request, jsonify
-from sqlalchemy import create_engine, Column, String, Time, JSON, TIMESTAMP, Date, text, Integer
+from sqlalchemy import create_engine, Column, String, Time, JSON, TIMESTAMP, Date, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, sessionmaker
 from ortools.sat.python import cp_model
@@ -32,6 +32,22 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+# Custom CP-SAT Solution Printer
+class CpSatSolutionPrinter(cp_model.CpSolverSolutionCallback):
+    """Logs intermediate solutions and solver progress."""
+
+    def __init__(self):
+        cp_model.CpSolverSolutionCallback.__init__(self)
+        self.__solution_count = 0
+
+    def on_solution_callback(self):
+        self.__solution_count += 1
+        logger.info(f"Intermediate solution #{self.__solution_count}")
+        logger.info(f"  Objective value: {self.ObjectiveValue()}")
+        logger.info(f"  Best bound: {self.BestObjectiveBound()}")
+        logger.info(f"  Wall time: {self.WallTime():.2f}s")
+
+
 # Database Models
 class MatchRequest(Base):
     __tablename__ = "match_requests"
@@ -44,7 +60,6 @@ class MatchRequest(Base):
     preferred_day = Column(Date, nullable=False)
     status = Column(String(20), default='pending')
     created_at = Column(TIMESTAMP, server_default=text('CURRENT_TIMESTAMP'))
-    team_size = Column(Integer, nullable=False)  # Added column
 
 
 class Match(Base):
@@ -96,11 +111,10 @@ def log_team_table(requests):
             req.preferred_start_time.strftime('%H:%M'),
             req.preferred_end_time.strftime('%H:%M'),
             req.preferred_day.strftime('%Y-%m-%d'),
-            ', '.join(req.preferred_venues) if req.preferred_venues else 'None',
-            req.team_size  # Added team size
+            ', '.join(req.preferred_venues) if req.preferred_venues else 'None'
         ])
 
-    headers = ["Index", "Team ID", "Ranking", "Start Time", "End Time", "Day", "Preferred Venues", "Team Size"]
+    headers = ["Index", "Team ID", "Ranking", "Start Time", "End Time", "Day", "Preferred Venues"]
     logger.info("\nTeams in Matchmaking:\n" + tabulate(team_data, headers=headers, tablefmt="grid"))
 
 
@@ -124,7 +138,7 @@ def validate_rank(req1, req2) -> bool:
 
 
 def calculate_overlapping_time(req1, req2):
-    """Calculate the one-hour aligned overlapping time between two requests"""
+    """Calculate the overlapping time window between two requests"""
     day = req1.preferred_day
     start1 = datetime.combine(day, req1.preferred_start_time)
     end1 = datetime.combine(day, req1.preferred_end_time)
@@ -136,17 +150,7 @@ def calculate_overlapping_time(req1, req2):
 
     if overlap_start >= overlap_end:
         return None, None
-
-    # Round up overlap_start to the next hour if minutes > 0
-    if overlap_start.minute > 0 or overlap_start.second > 0 or overlap_start.microsecond > 0:
-        overlap_start = overlap_start.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
-
-    overlap_end = overlap_start + timedelta(hours=1)
-
-    if overlap_end <= min(end1, end2):
-        return overlap_start, overlap_end
-
-    return None, None
+    return overlap_start, overlap_end
 
 
 def make_venue_booking_request(venue_ids, start_time, end_time, match_id):
@@ -189,8 +193,7 @@ def create_match_request():
             preferred_start_time=datetime.strptime(data['preferred_start_time'], '%H:%M').time(),
             preferred_end_time=datetime.strptime(data['preferred_end_time'], '%H:%M').time(),
             preferred_venues=data.get('preferred_venues', []),
-            preferred_day=datetime.strptime(data['preferred_day'], '%Y-%m-%d').date(),
-            team_size=data['team_size']  # Added line
+            preferred_day=datetime.strptime(data['preferred_day'], '%Y-%m-%d').date()
         )
 
         session.add(new_request)
@@ -239,7 +242,6 @@ def run_matchmaking():
                     "Time Overlap": False,
                     "Common Venues": 0,
                     "Rank Compatible": False,
-                    "Team Size Match": False,  # Added key
                     "Valid": False
                 }
 
@@ -269,15 +271,6 @@ def run_matchmaking():
                     potential_pairs.append(pair_info)
                     continue
 
-                # Check team sizes match
-                team_size_match = req1.team_size == req2.team_size
-                pair_info["Team Size Match"] = team_size_match
-                if not team_size_match:
-                    logger.debug(f"Pair {i}-{j}: Team size mismatch ({req1.team_size} vs {req2.team_size})")
-                    potential_pairs.append(pair_info)
-                    continue
-
-                # All checks passed, mark as valid
                 pair_info["Valid"] = True
                 valid_pairs.append(pair_key)
                 pair_venues[pair_key] = common_venues
@@ -286,12 +279,21 @@ def run_matchmaking():
 
         # Log potential pairs in a table
         logger.info("\nPotential Pairs Evaluation:\n" +
-                   tabulate([p.values() for p in potential_pairs],
-                            headers=potential_pairs[0].keys() if potential_pairs else [],
-                            tablefmt="grid"))
+                    tabulate([p.values() for p in potential_pairs],
+                             headers=potential_pairs[0].keys() if potential_pairs else [],
+                             tablefmt="grid"))
 
         model = cp_model.CpModel()
         solver = cp_model.CpSolver()
+
+        # Configure solver logging
+        solver.parameters.log_search_progress = True
+        solver.parameters.num_search_workers = 1  # Single thread for deterministic logging
+        solver.parameters.linearization_level = 2
+        solver.parameters.search_branching = cp_model.PORTFOLIO_SEARCH
+
+        # Create solution printer
+        solution_printer = CpSatSolutionPrinter()
 
         pair_vars = {pair: model.NewBoolVar(f'pair_{pair[0]}_{pair[1]}') for pair in valid_pairs}
 
@@ -307,8 +309,33 @@ def run_matchmaking():
         model.Maximize(sum(pair_vars.values()))
 
         logger.info("\nSolving constraint programming model...")
-        status = solver.Solve(model)
-        logger.info(f"Solver status: {status} (OPTIMAL={cp_model.OPTIMAL})")
+        logger.info("Solver parameters:\n%s", solver.parameters)
+        logger.info("Starting search...")
+
+        # Solve with callback
+        status = solver.SolveWithSolutionCallback(model, solution_printer)
+
+        # Log detailed solver statistics
+        logger.info("Solver finished with status: %s", solver.StatusName(status))
+        logger.info("Solver statistics:")
+        stats = [
+            ("Conflicts", solver.NumConflicts()),
+            ("Branches", solver.NumBranches()),
+            ("Wall time", f"{solver.WallTime():.2f}s"),
+            ("Objective value", solver.ObjectiveValue()),
+            ("Best bound", solver.BestObjectiveBound())
+        ]
+        logger.info(tabulate(stats, headers=["Metric", "Value"], tablefmt="grid"))
+
+        # Log solver's search strategy
+        logger.info("\nSolver search strategy:")
+        search_strategy = [
+            ("Branching", "LNS (Large Neighborhood Search)"),
+            ("Propagation", "Constraint propagation with SAT clauses"),
+            ("Conflict analysis", "Conflict-Driven Clause Learning (CDCL)"),
+            ("Optimization", "Branch-and-Bound with LP relaxation")
+        ]
+        logger.info(tabulate(search_strategy, tablefmt="grid"))
 
         matches = []
         if status == cp_model.OPTIMAL:
@@ -326,15 +353,11 @@ def run_matchmaking():
                         logger.info("No overlapping time window, skipping pair")
                         continue
 
-                    # Ensure minimum booking duration
                     if (scheduled_end - scheduled_start) < MINIMUM_BOOKING_DURATION:
                         logger.info("Overlap too short, skipping pair")
                         continue
 
-                    # Generate match ID first
                     match_id = uuid.uuid4()
-
-                    # Try to book a venue
                     booking_response = make_venue_booking_request(
                         common_venues,
                         scheduled_start,
@@ -346,7 +369,6 @@ def run_matchmaking():
                         logger.error(f"Failed to book venue for match {match_id}")
                         continue
 
-                    # Create match if booking succeeded
                     new_match = Match(
                         match_id=match_id,
                         team1_id=req1.team_id,
@@ -365,7 +387,6 @@ def run_matchmaking():
                         f"Time: {scheduled_start}"
                     )
 
-                    # Update request statuses
                     session.query(MatchRequest).filter(
                         MatchRequest.team_id.in_([req1.team_id, req2.team_id])
                     ).update({'status': 'matched'}, synchronize_session=False)
@@ -373,22 +394,20 @@ def run_matchmaking():
             session.bulk_save_objects(matches)
             session.commit()
 
-            # Log final matches in a table
-            match_data = []
-            for match in matches:
-                match_data.append([
-                    str(match.team1_id),
-                    str(match.team2_id),
-                    str(match.venue_id),
-                    str(match.field_id),
-                    match.scheduled_time.isoformat()
-                ])
-
-            if match_data:
+            if matches:
+                match_data = []
+                for match in matches:
+                    match_data.append([
+                        str(match.team1_id),
+                        str(match.team2_id),
+                        str(match.venue_id),
+                        str(match.field_id),
+                        match.scheduled_time.isoformat()
+                    ])
                 logger.info("\nCreated Matches:\n" +
-                           tabulate(match_data,
-                                    headers=["Team 1", "Team 2", "Venue ID", "Field ID", "Scheduled Time"],
-                                    tablefmt="grid"))
+                            tabulate(match_data,
+                                     headers=["Team 1", "Team 2", "Venue ID", "Field ID", "Scheduled Time"],
+                                     tablefmt="grid"))
 
             return jsonify({
                 'message': f'Created {len(matches)} matches',
@@ -415,7 +434,6 @@ def run_matchmaking():
         logger.info("\nMatchmaking process completed\n" + "=" * 50 + "\n")
 
 
-# Error Handlers
 @app.errorhandler(requests.exceptions.RequestException)
 def handle_venue_service_error(e):
     logger.error(f"Venue service communication failed: {str(e)}")

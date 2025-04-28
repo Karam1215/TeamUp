@@ -11,5 +11,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class AuthenticationServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(AuthenticationServiceApplication.class, args);
+        System.out.println("");
     }
+
 }

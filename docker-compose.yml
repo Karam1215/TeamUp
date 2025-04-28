@@ -8,7 +8,19 @@ services:
       POSTGRES_USERNAME: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
-      - ./match-service/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    networks:
+      - micro-net
+
+  flyway:
+    image: flyway/flyway:latest
+    environment:
+      - FLYWAY_URL=jdbc:postgresql://matchmaking-db:5432/matches_db
+      - FLYWAY_USER=postgres
+      - FLYWAY_PASSWORD=your_password
+      - FLYWAY_BASELINE_ON_MIGRATE=true
+    depends_on:
+      - matchmaking-db
     networks:
       - micro-net
 
@@ -135,7 +147,7 @@ services:
       context: .
       dockerfile: venue-service/Dockerfile
     ports:
-      - "8084"
+      - "8084:8084"
     depends_on:
       - venue-db
       - eureka
