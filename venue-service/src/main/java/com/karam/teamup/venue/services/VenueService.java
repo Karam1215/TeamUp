@@ -76,4 +76,11 @@ public class VenueService {
 
         return new ResponseEntity<>("Account deleted successfully", HttpStatus.OK);
     }
+
+    public ResponseEntity<List<Venue>> getAllVenues() {
+        if (venueRepository.findAll().isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+        return ResponseEntity.ok().body(venueRepository.findAll());
+    }
 }

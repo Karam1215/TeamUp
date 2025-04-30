@@ -1,6 +1,7 @@
 package com.karam.teamup.player.controllers;
 
 import com.karam.teamup.player.dto.CreateTeamRequest;
+import com.karam.teamup.player.entities.Team;
 import com.karam.teamup.player.exceptions.AccessDeniedException;
 import com.karam.teamup.player.exceptions.PlayerNotFoundException;
 import com.karam.teamup.player.exceptions.TeamAlreadyExistsException;
@@ -102,11 +103,27 @@ public class TeamController {
             @RequestHeader("X-Username") String username,
 
             @Parameter(description = "UUID of the invitation")
-            @RequestParam UUID invitationId,
+            @RequestParam(name = "invitationId") UUID invitationId,
 
             @Parameter(description = "Response value: 'accept' or 'decline'")
-            @RequestParam String response) {
+            @RequestParam("response") String response) {
 
         return teamInvitationService.respondToInvitation(username, invitationId, response);
     }
+
+    @Operation(summary = "Get Player's team", description = "Get Team info for specific player")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Response recorded"),
+            @ApiResponse(responseCode = "400", description = "Invalid response or already responded"),
+            @ApiResponse(responseCode = "403", description = "Not allowed to respond to this invitation"),
+            @ApiResponse(responseCode = "404", description = "Invitation not found")
+    })
+    @GetMapping()
+    public ResponseEntity<Team> getPlayersTeam(
+            @Parameter(in = ParameterIn.HEADER, description = "Username of the responding player")
+            @RequestHeader("X-Username") String username) {
+
+        return teamService.getPlayersTeam(username);
+    }
+
 }

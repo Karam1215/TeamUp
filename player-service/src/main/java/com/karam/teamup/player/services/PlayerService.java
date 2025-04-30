@@ -4,6 +4,7 @@ import com.karam.teamup.player.dto.PlayerProfileDTO;
 import com.karam.teamup.player.dto.UpdatePlayerProfileDTO;
 import com.karam.teamup.player.dto.UserCreatedEvent;
 import com.karam.teamup.player.entities.Player;
+import com.karam.teamup.player.entities.Team;
 import com.karam.teamup.player.exceptions.PlayerNotFoundException;
 import com.karam.teamup.player.exceptions.ResourceNotFoundException;
 import com.karam.teamup.player.mappers.PlayerProfileMapper;
@@ -137,12 +138,17 @@ public class PlayerService {
     }
 
     //TODO make controller for this future
-    public ResponseEntity<List<PlayerProfileDTO>> getAllPlayerByCity(String city) {
-        List<Player> players = playerRepository.findAllByCity(city);
+    public ResponseEntity<List<PlayerProfileDTO>> getAllPlayer(String username) {
+
+        playerRepository.findPlayerByUsername(username).orElseThrow(() -> {
+             throw new PlayerNotFoundException(PLAYER_NOT_FOUND);
+        });
+
+        List<Player> players = playerRepository.findAll();
         log.info("Found {} players", players.size());
         if (players.isEmpty()) {
-            log.warn("No players found for city: {}", city);
-            throw new ResourceNotFoundException("No players found for city: " + city);
+            log.warn("No players found");
+            throw new ResourceNotFoundException("No players found");
         }
         List<PlayerProfileDTO> playerProfileDTOList = players.stream()
                 .map(playerProfileMapper::toDTO)

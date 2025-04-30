@@ -71,7 +71,6 @@
             <version>3.6.1</version>
         </dependency>
     </dependencies>
-
     <build>
         <finalName>Venue-Service</finalName>
         <plugins>
@@ -89,6 +88,4 @@
             </plugin>
         </plugins>
     </build>
-
-
 </project>

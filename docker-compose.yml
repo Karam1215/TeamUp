@@ -13,12 +13,15 @@ services:
       - micro-net
 
   flyway:
-    image: flyway/flyway:latest
+    image: flyway/flyway
     environment:
-      - FLYWAY_URL=jdbc:postgresql://matchmaking-db:5432/matches_db
-      - FLYWAY_USER=postgres
-      - FLYWAY_PASSWORD=your_password
-      - FLYWAY_BASELINE_ON_MIGRATE=true
+      FLYWAY_URL: jdbc:postgresql://matchmaking-db:5432/matches_db
+      FLYWAY_USER: postgres
+      FLYWAY_PASSWORD: postgres
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql
+      FLYWAY_BASELINE_ON_MIGRATE: true
+    volumes:
+      - ./python-db-migrations:/flyway/sql
     depends_on:
       - matchmaking-db
     networks:
@@ -129,10 +132,11 @@ services:
       context: .
       dockerfile: player-service/Dockerfile
     ports:
-      - "8081"
+      - "8081:8081"
     depends_on:
       - player-db
       - eureka
+      - kafka
     networks:
       - micro-net
     environment:

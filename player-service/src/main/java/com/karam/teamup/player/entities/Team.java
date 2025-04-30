@@ -1,5 +1,6 @@
 package com.karam.teamup.player.entities;
 
+import com.karam.teamup.player.converter.TeamRankingConverter;
 import com.karam.teamup.player.enums.TeamRanking;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
@@ -45,12 +46,11 @@ public class Team {
     @Schema(description = "Maximum team capacity", example = "5")
     private int capacity;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "ranking")
     @NotNull(message = "Ranking must be specified")
+    @Convert(converter = TeamRankingConverter.class)
     @Schema(description = "Team skill level", example = "medium")
     private TeamRanking ranking;
-
 
     @NotNull(message = "Start time cannot be null")
     @Column(name = "preferredStartTime",nullable = false)
@@ -70,7 +70,6 @@ public class Team {
     @CollectionTable(name = "team_preferred_venues", joinColumns = @JoinColumn(name = "team_id"))
     @Column(name = "venue_id")
     private List<UUID> preferredVenues = new ArrayList<>();
-
 
     @AssertTrue(message = "End time must be after start time")
     private boolean isValidTimeRange() {

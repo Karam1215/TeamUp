@@ -3,6 +3,7 @@ package com.karam.teamup.player.controllers;
 import com.karam.teamup.player.dto.*;
 import com.karam.teamup.player.exceptions.InvalidCredentialsException;
 import com.karam.teamup.player.services.PlayerService;
+import com.karam.teamup.player.services.TeamInvitationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -10,13 +11,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 
 
 @Slf4j
@@ -26,6 +25,7 @@ import java.io.IOException;
 public class PlayerController {
 
     private final PlayerService playerService;
+    private final TeamInvitationService teamInvitationService;
 
     @GetMapping("/{username}")
     @Operation(summary = "Get player details", description = "Fetches profile details of a player by username.")
@@ -90,5 +90,30 @@ public class PlayerController {
         return playerService.deletePlayerByUsername(username);
     }
 
+    @Operation(
+        summary = "Get all players",
+        description = "Fetches a list of all players in the system",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Players retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "No players found")
+        }
+    )
+    @GetMapping
+    public ResponseEntity<List<PlayerProfileDTO>> getAllPlayers(@RequestHeader("X-Username") String username) {
+        return playerService.getAllPlayer(username);
+    }
 
+    @Operation(
+        summary = "Get Pending Invitations",
+        description = "Fetches all pending team invitations for the authenticated player",
+        responses = {
+            @ApiResponse(responseCode = "200", description = "Pending invitations retrieved successfully"),
+            @ApiResponse(responseCode = "204", description = "No pending invitations"),
+            @ApiResponse(responseCode = "404", description = "Player not found")
+        }
+    )
+    @GetMapping("/invitations")
+    public ResponseEntity<List<TeamInvitationDTO>> getPendingInvitations(@RequestHeader("X-Username") String username) {
+        return teamInvitationService.getPendingInvitations(username);
+    }
 }

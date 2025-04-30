@@ -1,6 +1,5 @@
 package com.karam.teamup.player.exceptions;
 
-import io.jsonwebtoken.security.SignatureException;
 import jakarta.xml.bind.ValidationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -100,12 +99,6 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(customizeException, HttpStatus.UNAUTHORIZED);
     }
 
-    @ExceptionHandler(SignatureException.class)
-    public ResponseEntity<String> handleInvalidJwtSignature(SignatureException ex) {
-        log.warn("JWT signature validation failed: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid JWT signature. Please log in again.");
-    }
-
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleGenericException(Exception e) {
         log.error("Unexpected error occurred: {}", e.getMessage(), e);
@@ -184,6 +177,34 @@ public class GlobalExceptionHandler {
         log.warn("Not allowed to access this resource {}", e.getMessage());
 
         return new ResponseEntity<>(customizeException, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(value = AlreadyATeamLeaderException.class)
+    public ResponseEntity<Object> alreadyTeamLeader(AlreadyATeamLeaderException e) {
+
+        CustomizeException customizeException = new CustomizeException(
+                "Already a team leader",
+                HttpStatus.FORBIDDEN,
+                ZonedDateTime.now()
+        );
+
+        log.warn("Not allowed to make this {}", e.getMessage());
+
+        return new ResponseEntity<>(customizeException, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(value = PlayerDontHaveTeamException.class)
+    public ResponseEntity<Object> playerDontHaveTeamException(PlayerDontHaveTeamException e) {
+
+        CustomizeException customizeException = new CustomizeException(
+                "You are not in a team",
+                HttpStatus.BAD_REQUEST,
+                ZonedDateTime.now()
+        );
+
+        log.warn("You are not in a team ", e.getMessage());
+
+        return new ResponseEntity<>(customizeException, HttpStatus.BAD_REQUEST);
     }
 
 }
