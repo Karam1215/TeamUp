@@ -81,6 +81,6 @@ public class VenueService {
         if (venueRepository.findAll().isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         }
-        return ResponseEntity.ok().body(venueRepository.findAll());
+        return ResponseEntity.ok(venueRepository.findAll());
     }
 }

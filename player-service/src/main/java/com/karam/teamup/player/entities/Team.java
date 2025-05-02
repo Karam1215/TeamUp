@@ -1,12 +1,21 @@
 package com.karam.teamup.player.entities;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.karam.teamup.player.converter.JsonbUUIDListConverter;
 import com.karam.teamup.player.converter.TeamRankingConverter;
 import com.karam.teamup.player.enums.TeamRanking;
+import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.annotations.Type;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -36,6 +45,7 @@ public class Team {
     private String name;
 
     @OneToOne
+    @JsonManagedReference
     @Schema(description = "Team leader reference")
     @JoinColumn(name = "leader_id", nullable = false)
     @NotNull(message = "Team leader must be specified")
@@ -62,16 +72,16 @@ public class Team {
     @Schema(description = "Preferred match end time", example = "21:00:00")
     private LocalTime preferredEndTime;
 
-    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL)
+    @JsonManagedReference
     @Schema(description = "List of team members")
+    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL)
     private List<Player> players = new ArrayList<>();
 
-    @ElementCollection
-    @CollectionTable(name = "team_preferred_venues", joinColumns = @JoinColumn(name = "team_id"))
-    @Column(name = "venue_id")
-    private List<UUID> preferredVenues = new ArrayList<>();
+    @Type(JsonBinaryType.class)
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "preferred_venues", columnDefinition = "jsonb")
+    private List<UUID> preferredVenues;
 
-    @AssertTrue(message = "End time must be after start time")
     private boolean isValidTimeRange() {
         return preferredEndTime.isAfter(preferredStartTime);
     }

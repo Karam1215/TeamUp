@@ -1,9 +1,12 @@
 package com.karam.teamup.player.services;
 
 import com.karam.teamup.player.dto.CreateTeamRequest;
+import com.karam.teamup.player.dto.UpdatePlayerProfileDTO;
+import com.karam.teamup.player.dto.UpdateTeamsProfileDTO;
 import com.karam.teamup.player.entities.Player;
 import com.karam.teamup.player.entities.Team;
 import com.karam.teamup.player.exceptions.*;
+import com.karam.teamup.player.mappers.TeamProfileMapper;
 import com.karam.teamup.player.repositories.PlayerRepository;
 import com.karam.teamup.player.repositories.TeamRepository;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +19,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
+import static com.karam.teamup.player.services.PlayerService.PLAYER_NOT_FOUND;
+
 
 @Slf4j
 @Service
@@ -25,6 +32,7 @@ public class TeamService {
 
     private final TeamRepository teamRepository;
     private final PlayerRepository playerRepository;
+    private final TeamProfileMapper teamProfileMapper;
     protected static final String TEAM_NOT_FOUND = "Team not found";
 
     @Transactional
@@ -82,5 +90,43 @@ public class TeamService {
         );
 
         return new ResponseEntity<>(team, HttpStatus.OK);
+    }
+
+    public ResponseEntity<List<Team>> getAllTeams(String username){
+        playerRepository.findPlayerByUsername(username).orElseThrow(
+                () -> {
+                    log.info("Player not found with name {}", username);
+                    return new PlayerNotFoundException(username);
+                }
+        );
+        log.info("All teams found");
+        return ResponseEntity.ok(teamRepository.findAll());
+    }
+
+    public ResponseEntity<String> updateTeamsProfile(UpdateTeamsProfileDTO updateTeamsProfileDTO,
+                                                     String username) {
+        log.info("Request for updating teams profile: {}", username);
+
+        Player player = playerRepository.findPlayerByUsername(username).orElseThrow(() -> {
+            log.warn("Player not found for profile update: {}", username);
+             throw new PlayerNotFoundException(PLAYER_NOT_FOUND);
+        });
+
+        Team teamToBeUpdated = teamRepository.findTeamByLeader(player).orElseThrow(() -> {
+            throw new TeamNotFoundException("Team not found with id");
+                }
+        );
+
+        if (!player.getPlayerId().equals(teamToBeUpdated.getLeader().getPlayerId())){
+            log.info(player.getPlayerId() + " and also" + player.getTeam().getLeader());
+            throw new AccessDeniedException("You are not allowed to update teams profile");
+        }
+
+        teamProfileMapper.updateTeamsProfile(teamToBeUpdated,updateTeamsProfileDTO);
+        log.info("before saving team profile");
+        teamRepository.save(teamToBeUpdated);
+
+        log.info("Profile updated successfully for team: {} 🎉🎉🎉🎉🎉🎉", teamToBeUpdated.getName());
+        return new ResponseEntity<>("Team's profile updated successfully", HttpStatus.OK);
     }
 }

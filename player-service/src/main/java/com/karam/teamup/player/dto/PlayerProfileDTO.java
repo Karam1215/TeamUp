@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 
 @Schema(name = "DTO for player profile")
 public record PlayerProfileDTO(
+        String playerId,
         String username,
         String firstName,
         String lastName,

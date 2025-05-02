@@ -4,8 +4,7 @@ CREATE TABLE matches (
     team1_id UUID NOT NULL,
     team2_id UUID NOT NULL,
     scheduled_time TIMESTAMP,
-    venue_id UUID,
-    field_id UUID,
-    booking_id UUID,
+    venues_id JSONB DEFAULT '[]',
+    status VARCHAR(20) DEFAULT 'matched' CHECK (status IN ('matched', 'expired', 'canceled')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

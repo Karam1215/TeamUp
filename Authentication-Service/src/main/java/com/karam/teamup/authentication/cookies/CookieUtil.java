@@ -12,11 +12,10 @@ public class CookieUtil {
         // Create the HTTP-only cookie with the token
         Cookie cookie = new Cookie("auth_token", token);
         cookie.setHttpOnly(true);
-        cookie.setSecure(true);  // Make sure this is true if you're using HTTPS
-        cookie.setPath("/");  // Make cookie available to all routes
-        cookie.setMaxAge(3600);  // Cookie expiration time (1 hour)
+        cookie.setSecure(false);
+        cookie.setPath("/");
+        cookie.setMaxAge(3600);
 
-        // Add the cookie to the response
         response.addCookie(cookie);
     }
 }

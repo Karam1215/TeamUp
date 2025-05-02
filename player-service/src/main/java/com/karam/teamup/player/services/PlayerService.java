@@ -137,7 +137,6 @@ public class PlayerService {
         return ResponseEntity.ok("Profile picture uploaded successfully: " + filePath);
     }
 
-    //TODO make controller for this future
     public ResponseEntity<List<PlayerProfileDTO>> getAllPlayer(String username) {
 
         playerRepository.findPlayerByUsername(username).orElseThrow(() -> {

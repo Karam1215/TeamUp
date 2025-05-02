@@ -1,6 +1,8 @@
 package com.karam.teamup.player.controllers;
 
 import com.karam.teamup.player.dto.CreateTeamRequest;
+import com.karam.teamup.player.dto.UpdatePlayerProfileDTO;
+import com.karam.teamup.player.dto.UpdateTeamsProfileDTO;
 import com.karam.teamup.player.entities.Team;
 import com.karam.teamup.player.exceptions.AccessDeniedException;
 import com.karam.teamup.player.exceptions.PlayerNotFoundException;
@@ -15,11 +17,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/player/team")
@@ -126,4 +131,27 @@ public class TeamController {
         return teamService.getPlayersTeam(username);
     }
 
+    @Operation(summary = "Get all teams", description = "Get all teams as a list")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "list of team or empty"),
+            @ApiResponse(responseCode = "404", description = "not found")
+    })
+    @GetMapping("/all")
+    public ResponseEntity<List<Team>> getAllTeams(
+            @Parameter(in = ParameterIn.HEADER, description = "Username of the responding player")
+            @RequestHeader("X-Username") String username) {
+
+        return teamService.getAllTeams(username);
+    }
+
+    @PatchMapping("/update")
+    @Operation(summary = "Update team's profile", description = "Updates profile information of the team.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Profile updated successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid update request")
+    })
+    public ResponseEntity<String> updateTeamProfile(@RequestHeader("X-Username") String username,@RequestBody UpdateTeamsProfileDTO dto) {
+        log.info("Profile updating (controller): {}", dto);
+        return teamService.updateTeamsProfile(dto, username);
+    }
 }

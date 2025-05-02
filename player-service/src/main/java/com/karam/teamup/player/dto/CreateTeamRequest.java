@@ -29,7 +29,6 @@ public record CreateTeamRequest(
     @NotNull(message = "Preferred end time cannot be null")
     LocalTime preferredEndTime
 ) {
-    // Custom validation for time range
     public CreateTeamRequest {
         if (preferredEndTime.isBefore(preferredStartTime)) {
             throw new IllegalArgumentException("End time must be after start time");

@@ -17,4 +17,6 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
     List<Team> findByName(String name, Sort sort);
     Optional<Team> findByLeader(@NotNull(message = "Team leader must be specified") Player leader);
     Optional<Team> findTeamById(UUID id);
+
+    Optional<Team> findTeamByLeader(@NotNull(message = "Team leader must be specified") Player leader);
 }

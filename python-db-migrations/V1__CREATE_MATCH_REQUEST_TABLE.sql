@@ -6,8 +6,8 @@ CREATE TABLE match_requests (
     preferred_end_time TIME NOT NULL,
     team_size INT CHECK (team_size >= 1),
     preferred_venues JSONB DEFAULT '[]',
+    preferred_day date,
     status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'matched', 'expired')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-alter table match_requests add column preferred_day date;
