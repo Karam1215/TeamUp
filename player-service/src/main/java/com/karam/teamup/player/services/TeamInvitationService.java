@@ -39,12 +39,15 @@ public class TeamInvitationService {
         Player teamLeader = playerRepository.findPlayerByUsername(username).orElseThrow(
                 () -> new PlayerNotFoundException(username)
         );
+        Player invitedPlayer = playerRepository.findPlayerByPlayerId(invitedPlayerId).orElseThrow(
+                () -> new PlayerNotFoundException(PlayerService.PLAYER_NOT_FOUND)
+        );
 
         if (teamLeader.getPlayerId().equals(invitedPlayerId)) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
 
-        if (teamLeader.getTeam().getId().equals(teamLeader.getTeam().getId())){
+        if (invitedPlayer.getTeam() != null && invitedPlayer.getTeam().equals(teamLeader.getTeam())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("The player is already in this team");
         }
 

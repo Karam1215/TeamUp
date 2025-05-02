@@ -8,9 +8,7 @@ import java.util.UUID;
 @Schema(description = "DTO for updating players profile")
 public record UpdatePlayerProfileDTO(
 
-        UUID playerId,
-
-        String username,
+        String firstName,
 
         String lastName,
 
