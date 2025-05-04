@@ -1,10 +1,9 @@
 import logging
 import threading
 import uuid
-import asyncpg
 from flask import Flask, request, jsonify, abort
-from sqlalchemy import create_engine, Column, String, Date, Time, TIMESTAMP, JSON, Integer, text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import create_engine, Column, String, Date, Time, TIMESTAMP, JSON, Integer, text, CheckConstraint
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timedelta
@@ -13,7 +12,6 @@ import json
 import numpy as np
 from flasgger import Swagger, swag_from
 
-# Configuration
 DB_URL = "postgresql+psycopg2://postgres:postgres@matchmaking-db:5432/matches_db"
 engine = create_engine(DB_URL)
 SessionLocal = sessionmaker(bind=engine)
@@ -34,9 +32,8 @@ app.config.update({
         'static_url_path': '/flasgger_static',
         'swagger_ui': True
     },
-    'PROVIDE_AUTOMATIC_OPTIONS': True  # Add this critical line
+    'PROVIDE_AUTOMATIC_OPTIONS': True
 })
-
 swagger = Swagger(app)
 
 # Logging setup
@@ -61,46 +58,56 @@ faiss_index = faiss.IndexFlatL2(3)  # 3 dimensions: ranking, start_time, end_tim
 faiss_lock = threading.Lock()
 vector_map = {}  # Maps team_id to index position
 
-class Match(Base):
-    __tablename__ = "matches"
-    match_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    team1_id = Column(UUID(as_uuid=True), nullable=False)
-    team2_id = Column(UUID(as_uuid=True), nullable=False)
-    scheduled_time = Column(Date, nullable=False)
-    venues_id = Column(JSON, nullable=False)
-    status = Column(String(20), default='scheduled')
-    created_at = Column(TIMESTAMP, server_default=text('CURRENT_TIMESTAMP'))
-
 # Database Models
 class MatchRequest(Base):
     __tablename__ = "match_requests"
     request_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    team_id = Column(UUID(as_uuid=True), unique=True, nullable=False)
-    ranking = Column(String(20), nullable=False)
-    preferred_start_time = Column(Time, nullable=False)
-    preferred_end_time = Column(Time, nullable=False)
-    preferred_venues = Column(JSON, nullable=False, server_default='[]')
-    preferred_day = Column(Date, nullable=False)
+    team_id = Column(UUID(as_uuid=True), nullable=False)
+    ranking = Column(String(50), nullable=False)
+    start_time = Column(Time, nullable=False)
+    end_time = Column(Time, nullable=False)
     team_size = Column(Integer, nullable=False)
-    status = Column(String(20), default='pending')
+    preferred_venues = Column(JSONB, nullable=False, server_default='[]')
+    day = Column(Date, nullable=False)
+    status = Column(String(20), server_default='pending', nullable=False)
     created_at = Column(TIMESTAMP, server_default=text('CURRENT_TIMESTAMP'))
 
+    __table_args__ = (
+        CheckConstraint(ranking.in_(['beginner', 'medium', 'advanced', 'world-class'])),
+        CheckConstraint(team_size >= 1),
+        CheckConstraint(status.in_(['pending', 'matched', 'expired'])),
+    )
+
+class Match(Base):
+    __tablename__ = "matches"
+    match_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    creator_team_id = Column(UUID(as_uuid=True), nullable=False)
+    joined_team_id = Column(UUID(as_uuid=True), nullable=False)
+    start_time = Column(Time, nullable=False)
+    end_time = Column(Time, nullable=False)
+    day = Column(Date, nullable=False)
+    venues_id = Column(JSONB, nullable=False, server_default='[]')
+    status = Column(String(20), server_default='matched', nullable=False)
+    created_at = Column(TIMESTAMP, server_default=text('CURRENT_TIMESTAMP'))
+    updated_at = Column(TIMESTAMP)
+
+    __table_args__ = (
+        CheckConstraint(status.in_(['matched', 'expired', 'canceled'])),
+    )
 
 Base.metadata.create_all(bind=engine)
-
 
 # Helper Functions
 def encode_request_vector(req: MatchRequest):
     """Normalized feature vector [0-1 range]"""
     ranking_norm = RANKING_WEIGHTS[req.ranking] / 3.0
-    start_minutes = req.preferred_start_time.hour * 60 + req.preferred_start_time.minute
-    end_minutes = req.preferred_end_time.hour * 60 + req.preferred_end_time.minute
+    start_minutes = req.start_time.hour * 60 + req.start_time.minute
+    end_minutes = req.end_time.hour * 60 + req.end_time.minute
     return np.array([
         ranking_norm,
         start_minutes / 1440,
         end_minutes / 1440
     ], dtype='float32')
-
 
 def rebuild_faiss_index():
     """Refresh FAISS index from database"""
@@ -122,9 +129,7 @@ def rebuild_faiss_index():
     finally:
         session.close()
 
-
 _first_request_handled = False
-
 
 # Initialization
 @app.before_request
@@ -136,12 +141,11 @@ def initialize_system_on_first_request():
             logger.info("System initialized")
             _first_request_handled = True
 
-
 # API Endpoints
 @app.route("/api/v1/match/request-match", methods=["POST"])
 @swag_from({
     'tags': ['Match Requests'],
-    'description': 'Create a new match request',
+    'description': 'Search for potential match without storing the request',
     'parameters': [{
         'in': 'body',
         'name': 'body',
@@ -153,29 +157,15 @@ def initialize_system_on_first_request():
                 'ranking': {'type': 'string', 'enum': ['beginner', 'medium', 'advanced', 'world-class'], 'example': 'medium'},
                 'start_time': {'type': 'string', 'format': 'HH:MM', 'example': '14:00'},
                 'end_time': {'type': 'string', 'format': 'HH:MM', 'example': '16:00'},
-                'preferred_day': {'type': 'string', 'format': 'date', 'example': '2024-05-20'},
+                'day': {'type': 'string', 'format': 'date', 'example': '2024-05-20'},
                 'preferred_venues': {'type': 'array', 'items': {'type': 'string'}, 'example': ['Stadium A']},
                 'team_size': {'type': 'integer', 'example': 5}
             },
-            'required': ['team_id', 'ranking', 'start_time', 'end_time', 'preferred_day', 'team_size']
+            'required': ['team_id', 'ranking', 'start_time', 'end_time', 'day', 'team_size']
         }
     }],
     'responses': {
-        200: {
-            'description': 'List of potential matches',
-            'examples': {
-                'application/json': {
-                    'matches': [{
-                        'request_id': '550e8400-e29b-41d4-a716-446655440000',
-                        'team_id': '550e8400-e29b-41d4-a716-446655440001',
-                        'ranking': 'medium',
-                        'team_size': 5,
-                        'preferred_start_time': '14:00',
-                        'preferred_end_time': '16:00'
-                    }]
-                }
-            }
-        },
+        200: {'description': 'List of potential matches'},
         400: {'description': 'Invalid input'},
         500: {'description': 'Internal server error'}
     }
@@ -199,36 +189,24 @@ def request_match():
 
         team_uuid = uuid.UUID(data["team_id"])
 
-        # Delete existing request
-        existing = session.query(MatchRequest).filter_by(team_id=team_uuid).first()
-        if existing:
-            session.delete(existing)
-            session.commit()
-            rebuild_faiss_index()
-
-        # Create new request
-        new_request = MatchRequest(
+        # Create temporary request object
+        temp_request = MatchRequest(
             team_id=team_uuid,
             ranking=data["ranking"],
-            preferred_start_time=start_time,
-            preferred_end_time=end_time,
-            preferred_day=datetime.strptime(data["preferred_day"], "%Y-%m-%d").date(),
+            start_time=start_time,
+            end_time=end_time,
+            day=datetime.strptime(data["day"], "%Y-%m-%d").date(),
             preferred_venues=data.get("preferred_venues", []),
             team_size=team_size
         )
-        session.add(new_request)
-        session.commit()
-        rebuild_faiss_index()
 
-        return find_best_matches(new_request.team_id, session)
+        return find_best_matches(temp_request.team_id, session, temp_request)
 
     except Exception as e:
-        session.rollback()
         logger.error(f"Error: {str(e)}")
         return jsonify({"error": str(e)}), 400
     finally:
         session.close()
-
 
 @app.route("/api/v1/match/join-match", methods=["POST"])
 @swag_from({
@@ -241,16 +219,16 @@ def request_match():
         'schema': {
             'type': 'object',
             'properties': {
-                'request_id': {'type': 'string', 'format': 'uuid', 'example': '550e8400-e29b-41d4-a716-446655440000'},
-                'team_b_id': {'type': 'string', 'format': 'uuid', 'example': '550e8400-e29b-41d4-a716-446655440001'}
+                'request_id': {'type': 'string', 'format': 'uuid'},
+                'team_b_id': {'type': 'string', 'format': 'uuid'}
             },
             'required': ['request_id', 'team_b_id']
         }
     }],
     'responses': {
         200: {'description': 'Match created successfully'},
-        400: {'description': 'Invalid input or self-join attempt'},
-        404: {'description': 'Match request or team not found'},
+        400: {'description': 'Invalid input'},
+        404: {'description': 'Not found'},
         500: {'description': 'Internal server error'}
     }
 })
@@ -259,16 +237,8 @@ def join_match():
     session = SessionLocal()
 
     try:
-        # Validate required fields
-        if "request_id" not in data or "team_b_id" not in data:
-            abort(400, description="Missing request_id or team_b_id in request")
-
-        # 1. Get the match request of Team A
-        try:
-            request_id = uuid.UUID(data["request_id"])
-            team_b_id = uuid.UUID(data["team_b_id"])
-        except (TypeError, ValueError):
-            abort(400, description="Invalid UUID format")
+        request_id = uuid.UUID(data["request_id"])
+        team_b_id = uuid.UUID(data["team_b_id"])
 
         request_row = session.query(MatchRequest).filter_by(
             request_id=request_id,
@@ -276,32 +246,27 @@ def join_match():
         ).first()
 
         if not request_row:
-            abort(404, description="Match request not found or already matched")
+            abort(404, description="Match request not found")
 
-        # 2. Prevent self-join
         if request_row.team_id == team_b_id:
-            abort(400, description="Team cannot join their own match request")
+            abort(400, description="Cannot join own request")
 
-        # 3. Verify Team B exists (optional but recommended)
-        team_b_exists = session.query(MatchRequest).filter_by(team_id=team_b_id).first()
-        if not team_b_exists:
-            abort(404, description="Team B has no active match request")
-
-        # 4. Create match
+        # Create match
         session.execute(text("""
-            INSERT INTO matches (team1_id, team2_id, scheduled_time, venues_id, status)
-            VALUES (:team1, :team2, :time, :venue, 'matched')
+            INSERT INTO matches (creator_team_id, joined_team_id, start_time, end_time, day, venues_id)
+            VALUES (:creator, :joined, :start_time, :end_time, :day, :venues)
         """), {
-            "team1": str(request_row.team_id),
-            "team2": str(team_b_id),
-            "time": request_row.preferred_day,
-            "venue": json.dumps(request_row.preferred_venues)
+            "creator": str(request_row.team_id),
+            "joined": str(team_b_id),
+            "start_time": request_row.start_time,
+            "end_time": request_row.end_time,
+            "day": request_row.day,
+            "venues": json.dumps(request_row.preferred_venues)
         })
 
-        # 5. Update statuses
+        # Update statuses
         request_row.status = 'matched'
-        session.query(MatchRequest).filter_by(team_id=team_b_id).delete()
-
+        session.query(MatchRequest).filter_by(team_id=team_b_id).update({'status': 'matched'})
         session.commit()
         rebuild_faiss_index()
 
@@ -314,145 +279,103 @@ def join_match():
     finally:
         session.close()
 
-# Matchmaking Core
-def find_best_matches(team_id, session):
-    target_request = session.query(MatchRequest).filter_by(team_id=team_id).first()
-    if not target_request:
-        return jsonify({"error": "Team not found"}), 404
-
-    target_vector = encode_request_vector(target_request)
-
+def find_best_matches(team_id, session, temp_request):
     with faiss_lock:
-        distances, indices = faiss_index.search(np.array([target_vector]), k=20)
+        if faiss_index.ntotal == 0:
+            return jsonify([])
 
-    # Map team_id to distance
-    team_distance_map = {}
-    for idx, dist in zip(indices[0], distances[0]):
-        if idx != -1:
-            for team_id_str, vec_idx in vector_map.items():
-                if vec_idx == idx:
-                    team_distance_map[uuid.UUID(team_id_str)] = dist
-                    break
+        # Get all match requests from DB (since we need day + venue filtering)
+        all_requests = session.query(MatchRequest).filter(
+            MatchRequest.status == 'pending',
+            MatchRequest.team_id != team_id,
+            MatchRequest.day == temp_request.day
+        ).all()
 
-    candidate_team_ids = list(team_distance_map.keys())
+        if not all_requests:
+            return jsonify([])
 
-    candidates = session.query(MatchRequest).filter(
-        MatchRequest.team_id.in_(candidate_team_ids),
-        MatchRequest.status == 'pending',
-        MatchRequest.team_id != target_request.team_id,
-        MatchRequest.preferred_day == target_request.preferred_day,
-        MatchRequest.team_size == target_request.team_size
-    ).all()
+        # Filter by overlapping venues
+        filtered_requests = [
+            r for r in all_requests
+            if set(r.preferred_venues) & set(temp_request.preferred_venues)
+        ]
 
-    filtered_matches = []
-    preferred_date = target_request.preferred_day
+        if not filtered_requests:
+            return jsonify([])
 
-    for candidate in candidates:
-        target_start = datetime.combine(preferred_date, target_request.preferred_start_time)
-        target_end = datetime.combine(preferred_date, target_request.preferred_end_time)
-        target_earliest = target_start - timedelta(hours=2)
-        target_latest = target_end + timedelta(hours=2)
+        # Encode their vectors
+        vectors = np.array([encode_request_vector(r) for r in filtered_requests], dtype='float32')
 
-        candidate_start = datetime.combine(preferred_date, candidate.preferred_start_time)
-        candidate_end = datetime.combine(preferred_date, candidate.preferred_end_time)
-        candidate_earliest = candidate_start - timedelta(hours=2)
-        candidate_latest = candidate_end + timedelta(hours=2)
+        # Encode query vector
+        query_vector = encode_request_vector(temp_request).reshape(1, -1)
 
-        if not (target_earliest < candidate_latest and candidate_earliest < target_latest):
-            continue
+        # Build a temporary FAISS index for filtered vectors
+        temp_index = faiss.IndexFlatL2(3)
+        temp_index.add(vectors)
 
-        if not set(target_request.preferred_venues) & set(candidate.preferred_venues):
-            continue
+        # Search for top 10 similar
+        D, I = temp_index.search(query_vector, k=min(10, len(filtered_requests)))
 
-        if abs(RANKING_WEIGHTS[target_request.ranking] - RANKING_WEIGHTS[candidate.ranking]) > 1:
-            continue
+        # Return match info sorted by similarity
+        matches = []
+        for dist, idx in zip(D[0], I[0]):
+            r = filtered_requests[idx]
+            matches.append({
+                'request_id': str(r.request_id),
+                'team_id': str(r.team_id),
+                'ranking': r.ranking,
+                'start_time': str(r.start_time),
+                'end_time': str(r.end_time),
+                'preferred_venues': r.preferred_venues,
+                'day': str(r.day),
+                'team_size': r.team_size,
+                'similarity_score': float(1 / (1 + dist))  # Optional score
+            })
 
-        filtered_matches.append(candidate)
-
-    # Sort by FAISS distance
-    sorted_matches = sorted(filtered_matches, key=lambda c: team_distance_map.get(c.team_id, float('inf')))
-
-    potential_matches = []
-    for match in sorted_matches:
-        potential_matches.append({
-            "request_id": match.request_id,
-            "team_id": match.team_id,
-            "ranking": match.ranking,
-            "team_size": match.team_size,
-            "preferred_start_time": match.preferred_start_time.strftime("%H:%M"),
-            "preferred_end_time": match.preferred_end_time.strftime("%H:%M"),
-        })
-
-    return jsonify({"matches": potential_matches})
-
+        return jsonify(matches)
 
 @app.route("/api/v1/match/get-matches/<team_id>", methods=["GET"])
 @swag_from({
     'tags': ['Matches'],
-    'description': 'Get all matches for a specific team',
+    'description': 'Get all matches for a team',
     'parameters': [{
         'in': 'path',
         'name': 'team_id',
         'type': 'string',
-        'format': 'uuid',
-        'required': True,
-        'example': '550e8400-e29b-41d4-a716-446655440000'
+        'required': True
     }],
     'responses': {
-        200: {
-            'description': 'List of matches',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'matches': {
-                        'type': 'array',
-                        'items': {
-                            'type': 'object',
-                            'properties': {
-                                'match_id': {'type': 'string', 'format': 'uuid'},
-                                'team1_id': {'type': 'string', 'format': 'uuid'},
-                                'team2_id': {'type': 'string', 'format': 'uuid'},
-                                'scheduled_time': {'type': 'string', 'format': 'date'},
-                                'venues': {'type': 'array', 'items': {'type': 'string'}},
-                                'status': {'type': 'string'},
-                                'created_at': {'type': 'string', 'format': 'date-time'}
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        400: {'description': 'Invalid team ID format'},
-        500: {'description': 'Internal server error'}
+        200: {'description': 'List of matches'},
+        400: {'description': 'Invalid UUID'},
+        500: {'description': 'Server error'}
     }
 })
 def get_matches(team_id):
     session = SessionLocal()
     try:
-        # Validate team_id UUID format
-        try:
-            team_uuid = uuid.UUID(team_id)
-        except ValueError:
-            abort(400, description="Invalid team ID format")
+        team_uuid = uuid.UUID(team_id)
+    except ValueError:
+        abort(400, description="Invalid team ID format")
 
-        # Query matches where the team is either team1 or team2
+    try:
         matches = session.execute(text("""
             SELECT * FROM matches 
-            WHERE team1_id = :team_id OR team2_id = :team_id
-            ORDER BY scheduled_time DESC
+            WHERE creator_team_id = :team_id OR joined_team_id = :team_id
+            ORDER BY day DESC, start_time DESC
         """), {"team_id": str(team_uuid)}).fetchall()
 
-        # Convert matches to JSON-serializable format
         result = []
         for match in matches:
             result.append({
                 "match_id": str(match[0]),
-                "team1_id": str(match[1]),
-                "team2_id": str(match[2]),
-                "scheduled_time": match[3].isoformat(),
-                "venues": match[4],
-                "status": match[5],
-                "created_at": match[6].isoformat() if match[6] else None
+                "creator_team_id": str(match[1]),
+                "joined_team_id": str(match[2]),
+                "start_time": match[3].strftime("%H:%M"),
+                "end_time": match[4].strftime("%H:%M"),
+                "day": match[5].isoformat(),
+                "venues_id": match[6],
+                "status": match[7],
+                "created_at": match[8].isoformat()
             })
 
         return jsonify({"matches": result})
@@ -463,149 +386,7 @@ def get_matches(team_id):
     finally:
         session.close()
 
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000)
-import logging
-import threading
-import uuid
-import asyncpg
-from flask import Flask, request, jsonify, abort
-from sqlalchemy import create_engine, Column, String, Date, Time, TIMESTAMP, JSON, Integer, text
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from datetime import datetime, timedelta
-import faiss
-import json
-import numpy as np
-from flasgger import Swagger, swag_from
-
-# Configuration
-DB_URL = "postgresql+psycopg2://postgres:postgres@matchmaking-db:5432/matches_db"
-engine = create_engine(DB_URL)
-SessionLocal = sessionmaker(bind=engine)
-Base = declarative_base()
-
-app = Flask(__name__)
-app.config.update({
-    'SWAGGER': {
-        'title': 'Matchmaking API',
-        'uiversion': 3,
-        'specs_route': '/api-docs/',
-        'specs': [{
-            'endpoint': 'apispec_1',
-            'route': '/apispec_1.json',
-            'rule_filter': lambda rule: True,
-            'model_filter': lambda tag: True,
-        }],
-        'static_url_path': '/flasgger_static',
-        'swagger_ui': True
-    },
-    'PROVIDE_AUTOMATIC_OPTIONS': True  # Add this critical line
-})
-
-swagger = Swagger(app)
-
-# Logging setup
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('../matchmaking.log')
-    ]
-)
-logger = logging.getLogger(__name__)
-
-# Constants and Thread Safety
-RANKING_WEIGHTS = {
-    'beginner': 0,
-    'medium': 1,
-    'advanced': 2,
-    'world-class': 3
-}
-faiss_index = faiss.IndexFlatL2(3)  # 3 dimensions: ranking, start_time, end_time
-faiss_lock = threading.Lock()
-vector_map = {}  # Maps team_id to index position
-
-class Match(Base):
-    __tablename__ = "matches"
-    match_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    team1_id = Column(UUID(as_uuid=True), nullable=False)
-    team2_id = Column(UUID(as_uuid=True), nullable=False)
-    scheduled_time = Column(Date, nullable=False)
-    venues_id = Column(JSON, nullable=False)
-    status = Column(String(20), default='scheduled')
-    created_at = Column(TIMESTAMP, server_default=text('CURRENT_TIMESTAMP'))
-
-# Database Models
-class MatchRequest(Base):
-    __tablename__ = "match_requests"
-    request_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    team_id = Column(UUID(as_uuid=True), unique=True, nullable=False)
-    ranking = Column(String(20), nullable=False)
-    preferred_start_time = Column(Time, nullable=False)
-    preferred_end_time = Column(Time, nullable=False)
-    preferred_venues = Column(JSON, nullable=False, server_default='[]')
-    preferred_day = Column(Date, nullable=False)
-    team_size = Column(Integer, nullable=False)
-    status = Column(String(20), default='pending')
-    created_at = Column(TIMESTAMP, server_default=text('CURRENT_TIMESTAMP'))
-
-
-Base.metadata.create_all(bind=engine)
-
-
-# Helper Functions
-def encode_request_vector(req: MatchRequest):
-    """Normalized feature vector [0-1 range]"""
-    ranking_norm = RANKING_WEIGHTS[req.ranking] / 3.0
-    start_minutes = req.preferred_start_time.hour * 60 + req.preferred_start_time.minute
-    end_minutes = req.preferred_end_time.hour * 60 + req.preferred_end_time.minute
-    return np.array([
-        ranking_norm,
-        start_minutes / 1440,
-        end_minutes / 1440
-    ], dtype='float32')
-
-
-def rebuild_faiss_index():
-    """Refresh FAISS index from database"""
-    global faiss_index, vector_map
-    session = SessionLocal()
-    try:
-        with faiss_lock:
-            faiss_index.reset()
-            vector_map.clear()
-
-            requests = session.query(MatchRequest).filter_by(status='pending').all()
-            if not requests:
-                return
-
-            vectors = np.array([encode_request_vector(req) for req in requests], dtype='float32')
-            faiss_index.add(vectors)
-            vector_map = {str(req.team_id): idx for idx, req in enumerate(requests)}
-            logger.info(f"Rebuilt FAISS index with {len(requests)} vectors")
-    finally:
-        session.close()
-
-
-_first_request_handled = False
-
-
-# Initialization
-@app.before_request
-def initialize_system_on_first_request():
-    global _first_request_handled
-    if not _first_request_handled:
-        with app.app_context():
-            rebuild_faiss_index()
-            logger.info("System initialized")
-            _first_request_handled = True
-
-
-# API Endpoints
-@app.route("/api/v1/match/request-match", methods=["POST"])
+@app.route("/api/v1/match/create-match-request", methods=["POST"])
 @swag_from({
     'tags': ['Match Requests'],
     'description': 'Create a new match request',
@@ -616,317 +397,77 @@ def initialize_system_on_first_request():
         'schema': {
             'type': 'object',
             'properties': {
-                'team_id': {'type': 'string', 'format': 'uuid', 'example': '550e8400-e29b-41d4-a716-446655440000'},
-                'ranking': {'type': 'string', 'enum': ['beginner', 'medium', 'advanced', 'world-class'], 'example': 'medium'},
-                'start_time': {'type': 'string', 'format': 'HH:MM', 'example': '14:00'},
-                'end_time': {'type': 'string', 'format': 'HH:MM', 'example': '16:00'},
-                'preferred_day': {'type': 'string', 'format': 'date', 'example': '2024-05-20'},
-                'preferred_venues': {'type': 'array', 'items': {'type': 'string'}, 'example': ['Stadium A']},
-                'team_size': {'type': 'integer', 'example': 5}
+                'team_id': {'type': 'string', 'format': 'uuid'},
+                'ranking': {'type': 'string'},
+                'start_time': {'type': 'string'},
+                'end_time': {'type': 'string'},
+                'day': {'type': 'string'},
+                'preferred_venues': {'type': 'array'},
+                'team_size': {'type': 'integer'}
             },
-            'required': ['team_id', 'ranking', 'start_time', 'end_time', 'preferred_day', 'team_size']
+            'required': ['team_id', 'ranking', 'start_time', 'end_time', 'day', 'team_size']
         }
     }],
     'responses': {
-        200: {
-            'description': 'List of potential matches',
-            'examples': {
-                'application/json': {
-                    'matches': [{
-                        'request_id': '550e8400-e29b-41d4-a716-446655440000',
-                        'team_id': '550e8400-e29b-41d4-a716-446655440001',
-                        'ranking': 'medium',
-                        'team_size': 5,
-                        'preferred_start_time': '14:00',
-                        'preferred_end_time': '16:00'
-                    }]
-                }
-            }
-        },
-        400: {'description': 'Invalid input'},
-        500: {'description': 'Internal server error'}
+        201: {'description': 'Request created'},
+        400: {'description': 'Invalid input or overlapping request'},
+        409: {'description': 'Conflicting existing request'}
     }
 })
-def request_match():
+def create_match_request():
     data = request.json
     session = SessionLocal()
-
     try:
-        if data["ranking"] not in RANKING_WEIGHTS:
-            return jsonify({"error": "Invalid ranking value"}), 400
-
+        # Parse input data
+        team_uuid = uuid.UUID(data["team_id"])
         start_time = datetime.strptime(data["start_time"], "%H:%M").time()
         end_time = datetime.strptime(data["end_time"], "%H:%M").time()
-        if start_time >= end_time:
-            return jsonify({"error": "Invalid time range"}), 400
+        day = datetime.strptime(data["day"], "%Y-%m-%d").date()
+        team_size = data["team_size"]
 
-        team_size = data.get("team_size")
-        if not isinstance(team_size, int) or team_size <= 0:
+        # Check for existing overlapping requests
+        existing_conflict = session.query(MatchRequest).filter(
+            MatchRequest.team_id == team_uuid,
+            MatchRequest.day == day,
+            MatchRequest.status.in_(['pending', 'matched']),
+            MatchRequest.start_time < end_time,
+            MatchRequest.end_time > start_time
+        ).first()
+
+        if existing_conflict:
+            return jsonify({
+                "error": "Team already has an active or pending match request with overlapping times on this day"
+            }), 409
+
+        # Validate team size
+        if not isinstance(team_size, int) or team_size < 1:
             return jsonify({"error": "Invalid team size"}), 400
-
-        team_uuid = uuid.UUID(data["team_id"])
-
-        # Delete existing request
-        existing = session.query(MatchRequest).filter_by(team_id=team_uuid).first()
-        if existing:
-            session.delete(existing)
-            session.commit()
-            rebuild_faiss_index()
 
         # Create new request
         new_request = MatchRequest(
             team_id=team_uuid,
             ranking=data["ranking"],
-            preferred_start_time=start_time,
-            preferred_end_time=end_time,
-            preferred_day=datetime.strptime(data["preferred_day"], "%Y-%m-%d").date(),
+            start_time=start_time,
+            end_time=end_time,
+            day=day,
             preferred_venues=data.get("preferred_venues", []),
             team_size=team_size
         )
+
         session.add(new_request)
         session.commit()
         rebuild_faiss_index()
 
-        return find_best_matches(new_request.team_id, session)
+        return jsonify({"message": "Match request created"}), 201
 
+    except ValueError as e:
+        session.rollback()
+        logger.error(f"Validation error: {str(e)}")
+        return jsonify({"error": "Invalid input format"}), 400
     except Exception as e:
         session.rollback()
-        logger.error(f"Error: {str(e)}")
+        logger.error(f"Create request error: {str(e)}")
         return jsonify({"error": str(e)}), 400
-    finally:
-        session.close()
-
-
-@app.route("/api/v1/match/join-match", methods=["POST"])
-@swag_from({
-    'tags': ['Matches'],
-    'description': 'Join an existing match request',
-    'parameters': [{
-        'in': 'body',
-        'name': 'body',
-        'required': True,
-        'schema': {
-            'type': 'object',
-            'properties': {
-                'request_id': {'type': 'string', 'format': 'uuid', 'example': '550e8400-e29b-41d4-a716-446655440000'},
-                'team_b_id': {'type': 'string', 'format': 'uuid', 'example': '550e8400-e29b-41d4-a716-446655440001'}
-            },
-            'required': ['request_id', 'team_b_id']
-        }
-    }],
-    'responses': {
-        200: {'description': 'Match created successfully'},
-        400: {'description': 'Invalid input or self-join attempt'},
-        404: {'description': 'Match request or team not found'},
-        500: {'description': 'Internal server error'}
-    }
-})
-def join_match():
-    data = request.get_json()
-    session = SessionLocal()
-
-    try:
-        # Validate required fields
-        if "request_id" not in data or "team_b_id" not in data:
-            abort(400, description="Missing request_id or team_b_id in request")
-
-        # 1. Get the match request of Team A
-        try:
-            request_id = uuid.UUID(data["request_id"])
-            team_b_id = uuid.UUID(data["team_b_id"])
-        except (TypeError, ValueError):
-            abort(400, description="Invalid UUID format")
-
-        request_row = session.query(MatchRequest).filter_by(
-            request_id=request_id,
-            status='pending'
-        ).first()
-
-        if not request_row:
-            abort(404, description="Match request not found or already matched")
-
-        # 2. Prevent self-join
-        if request_row.team_id == team_b_id:
-            abort(400, description="Team cannot join their own match request")
-
-        # 3. Verify Team B exists (optional but recommended)
-        team_b_exists = session.query(MatchRequest).filter_by(team_id=team_b_id).first()
-        if not team_b_exists:
-            abort(404, description="Team B has no active match request")
-
-        # 4. Create match
-        session.execute(text("""
-            INSERT INTO matches (team1_id, team2_id, scheduled_time, venues_id, status)
-            VALUES (:team1, :team2, :time, :venue, 'matched')
-        """), {
-            "team1": str(request_row.team_id),
-            "team2": str(team_b_id),
-            "time": request_row.preferred_day,
-            "venue": json.dumps(request_row.preferred_venues)
-        })
-
-        # 5. Update statuses
-        request_row.status = 'matched'
-        session.query(MatchRequest).filter_by(team_id=team_b_id).delete()
-
-        session.commit()
-        rebuild_faiss_index()
-
-        return jsonify({"message": "Match created successfully"})
-
-    except Exception as e:
-        session.rollback()
-        logger.error(f"/join-match error: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        session.close()
-
-# Matchmaking Core
-def find_best_matches(team_id, session):
-    target_request = session.query(MatchRequest).filter_by(team_id=team_id).first()
-    if not target_request:
-        return jsonify({"error": "Team not found"}), 404
-
-    target_vector = encode_request_vector(target_request)
-
-    with faiss_lock:
-        distances, indices = faiss_index.search(np.array([target_vector]), k=20)
-
-    # Map team_id to distance
-    team_distance_map = {}
-    for idx, dist in zip(indices[0], distances[0]):
-        if idx != -1:
-            for team_id_str, vec_idx in vector_map.items():
-                if vec_idx == idx:
-                    team_distance_map[uuid.UUID(team_id_str)] = dist
-                    break
-
-    candidate_team_ids = list(team_distance_map.keys())
-
-    candidates = session.query(MatchRequest).filter(
-        MatchRequest.team_id.in_(candidate_team_ids),
-        MatchRequest.status == 'pending',
-        MatchRequest.team_id != target_request.team_id,
-        MatchRequest.preferred_day == target_request.preferred_day,
-        MatchRequest.team_size == target_request.team_size
-    ).all()
-
-    filtered_matches = []
-    preferred_date = target_request.preferred_day
-
-    for candidate in candidates:
-        target_start = datetime.combine(preferred_date, target_request.preferred_start_time)
-        target_end = datetime.combine(preferred_date, target_request.preferred_end_time)
-        target_earliest = target_start - timedelta(hours=2)
-        target_latest = target_end + timedelta(hours=2)
-
-        candidate_start = datetime.combine(preferred_date, candidate.preferred_start_time)
-        candidate_end = datetime.combine(preferred_date, candidate.preferred_end_time)
-        candidate_earliest = candidate_start - timedelta(hours=2)
-        candidate_latest = candidate_end + timedelta(hours=2)
-
-        if not (target_earliest < candidate_latest and candidate_earliest < target_latest):
-            continue
-
-        if not set(target_request.preferred_venues) & set(candidate.preferred_venues):
-            continue
-
-        if abs(RANKING_WEIGHTS[target_request.ranking] - RANKING_WEIGHTS[candidate.ranking]) > 1:
-            continue
-
-        filtered_matches.append(candidate)
-
-    # Sort by FAISS distance
-    sorted_matches = sorted(filtered_matches, key=lambda c: team_distance_map.get(c.team_id, float('inf')))
-
-    potential_matches = []
-    for match in sorted_matches:
-        potential_matches.append({
-            "request_id": match.request_id,
-            "team_id": match.team_id,
-            "ranking": match.ranking,
-            "team_size": match.team_size,
-            "preferred_start_time": match.preferred_start_time.strftime("%H:%M"),
-            "preferred_end_time": match.preferred_end_time.strftime("%H:%M"),
-        })
-
-    return jsonify({"matches": potential_matches})
-
-
-@app.route("/api/v1/match/get-matches/<team_id>", methods=["GET"])
-@swag_from({
-    'tags': ['Matches'],
-    'description': 'Get all matches for a specific team',
-    'parameters': [{
-        'in': 'path',
-        'name': 'team_id',
-        'type': 'string',
-        'format': 'uuid',
-        'required': True,
-        'example': '550e8400-e29b-41d4-a716-446655440000'
-    }],
-    'responses': {
-        200: {
-            'description': 'List of matches',
-            'schema': {
-                'type': 'object',
-                'properties': {
-                    'matches': {
-                        'type': 'array',
-                        'items': {
-                            'type': 'object',
-                            'properties': {
-                                'match_id': {'type': 'string', 'format': 'uuid'},
-                                'team1_id': {'type': 'string', 'format': 'uuid'},
-                                'team2_id': {'type': 'string', 'format': 'uuid'},
-                                'scheduled_time': {'type': 'string', 'format': 'date'},
-                                'venues': {'type': 'array', 'items': {'type': 'string'}},
-                                'status': {'type': 'string'},
-                                'created_at': {'type': 'string', 'format': 'date-time'}
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        400: {'description': 'Invalid team ID format'},
-        500: {'description': 'Internal server error'}
-    }
-})
-def get_matches(team_id):
-    session = SessionLocal()
-    try:
-        # Validate team_id UUID format
-        try:
-            team_uuid = uuid.UUID(team_id)
-        except ValueError:
-            abort(400, description="Invalid team ID format")
-
-        # Query matches where the team is either team1 or team2
-        matches = session.execute(text("""
-            SELECT * FROM matches 
-            WHERE team1_id = :team_id OR team2_id = :team_id
-            ORDER BY scheduled_time DESC
-        """), {"team_id": str(team_uuid)}).fetchall()
-
-        # Convert matches to JSON-serializable format
-        result = []
-        for match in matches:
-            result.append({
-                "match_id": str(match[0]),
-                "team1_id": str(match[1]),
-                "team2_id": str(match[2]),
-                "scheduled_time": match[3].isoformat(),
-                "venues": match[4],
-                "status": match[5],
-                "created_at": match[6].isoformat() if match[6] else None
-            })
-
-        return jsonify({"matches": result})
-
-    except Exception as e:
-        logger.error(f"Error getting matches: {str(e)}")
-        return jsonify({"error": "Internal server error"}), 500
     finally:
         session.close()
 
