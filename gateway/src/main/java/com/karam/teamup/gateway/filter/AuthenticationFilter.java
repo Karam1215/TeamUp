@@ -34,15 +34,16 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
             ServerHttpRequest request = exchange.getRequest();
             String requestPath = request.getURI().getPath();
 
+            // Check if the route is secured and not an open API
             if (routeValidator.isSecured.test(request)) {
                 log.info("Checking authentication for request: {}", requestPath);
 
-                // Try to get the token from cookies
-                String token = getTokenFromCookies(request);
+                // Get token from header (Authorization)
+                String token = getTokenFromHeader(request);
 
                 if (token == null) {
-                    log.warn("Missing JWT cookie for request: {}", requestPath);
-                    throw new UnauthorizedAccessException("Missing JWT cookie");
+                    log.warn("Missing JWT token in Authorization header for request: {}", requestPath);
+                    throw new UnauthorizedAccessException("Missing JWT token");
                 }
 
                 try {
@@ -78,10 +79,13 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
         });
     }
 
-    // Try to retrieve theplayer JWT token from cookies
-    private String getTokenFromCookies(ServerHttpRequest request) {
-        if (request.getCookies().containsKey("auth_token")) {
-            return Objects.requireNonNull(request.getCookies().getFirst("auth_token")).getValue();
+    // Try to retrieve the JWT token from the Authorization header
+    private String getTokenFromHeader(ServerHttpRequest request) {
+        HttpHeaders headers = request.getHeaders();
+        String authorizationHeader = headers.getFirst(HttpHeaders.AUTHORIZATION);
+
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            return authorizationHeader.substring(7);  // Remove "Bearer " prefix
         }
         return null;
     }
@@ -89,7 +93,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
     private List<String> getRequiredRolesForRoute(String requestPath) {
         if (requestPath.startsWith("/api/v1/player")) {
             return List.of("ROLE_USER", "ROLE_ADMIN");
-        }if (requestPath.startsWith("/api/v1/venue/all")) {
+        } if (requestPath.startsWith("/api/v1/venue/all")) {
             return List.of("ROLE_USER", "ROLE_VENUE");
         }
         else if (requestPath.startsWith("/api/v1/venue")) {

@@ -154,4 +154,21 @@ public class TeamController {
         log.info("Profile updating (controller): {}", dto);
         return teamService.updateTeamsProfile(dto, username);
     }
+
+        @Operation(summary = "Get team by Id", description = "Get Team info for specific team using team id (UUID)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "okay"),
+            @ApiResponse(responseCode = "400", description = "Invalid response or already responded"),
+            @ApiResponse(responseCode = "403", description = "Not allowed to respond to this invitation"),
+            @ApiResponse(responseCode = "404", description = "not found")
+    })
+    @GetMapping("/{teamId}")
+    public ResponseEntity<Team> getTeamById(
+            @Parameter(in = ParameterIn.HEADER, description = "Username of the responding player")
+            @RequestHeader("X-Username") String username,
+            @PathVariable UUID teamId
+        ) {
+
+        return teamService.getTeamById(username, teamId);
+    }
 }

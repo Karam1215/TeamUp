@@ -2,7 +2,7 @@ package com.karam.teamup.player.enums;
 
 public enum TeamRanking {
     BEGINNER,
-    INTERMEDIATE,  // Instead of "medium", which is less conventional
+    MEDIUM,
     ADVANCED,
-    WORLD_CLASS;   // Better readability with an underscore
+    WORLD_CLASS;
 }

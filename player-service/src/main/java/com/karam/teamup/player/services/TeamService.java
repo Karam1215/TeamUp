@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 
 import static com.karam.teamup.player.services.PlayerService.PLAYER_NOT_FOUND;
 
@@ -128,5 +129,21 @@ public class TeamService {
 
         log.info("Profile updated successfully for team: {} 🎉🎉🎉🎉🎉🎉", teamToBeUpdated.getName());
         return new ResponseEntity<>("Team's profile updated successfully", HttpStatus.OK);
+    }
+
+    public ResponseEntity<Team> getTeamById(String username,UUID teamId) {
+        playerRepository.findPlayerByUsername(username).orElseThrow(
+                () -> {
+                    log.info("Player not found with name {}", username);
+                    return new PlayerNotFoundException(username);
+                }
+        );
+
+         Team team = teamRepository.findTeamById(teamId).orElseThrow(() -> {
+            log.info("Team not found with id {}", teamId);
+            return new TeamNotFoundException("Team not found with id " + teamId);
+        });
+
+        return new ResponseEntity<>(team, HttpStatus.OK);
     }
 }

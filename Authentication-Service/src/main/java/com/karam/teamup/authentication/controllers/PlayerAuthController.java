@@ -53,7 +53,7 @@ public class PlayerAuthController {
             )),
             @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid credentials", content = @Content)
     })
-    public ResponseEntity<String> login(@Valid @RequestBody UserLoginDTO userLoginDTO, HttpServletResponse response) {
+    public ResponseEntity<Map<String,String>> login(@Valid @RequestBody UserLoginDTO userLoginDTO, HttpServletResponse response) {
         log.info("Login attempt for: {}", userLoginDTO.email());
         return playerService.login(userLoginDTO, response);
     }

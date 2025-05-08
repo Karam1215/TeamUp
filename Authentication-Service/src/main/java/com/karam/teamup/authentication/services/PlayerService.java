@@ -25,6 +25,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -73,7 +76,7 @@ public class PlayerService {
                 " Please check your email to verify and start your journey! 🚀", HttpStatus.CREATED);
     }
 
-        public ResponseEntity<String> login(UserLoginDTO userLoginDTO, HttpServletResponse response) {
+        public ResponseEntity<Map<String,String>> login(UserLoginDTO userLoginDTO, HttpServletResponse response) {
         log.info("Attempting login for email: {}", userLoginDTO.email());
 
         User user = userRepository.findUserByEmail(userLoginDTO.email())
@@ -90,8 +93,9 @@ public class PlayerService {
         log.info("Login successful for user: {}", user.getUsername());
 
         cookieUtil.addAuthTokenCookie(response, token);
-
-        return ResponseEntity.ok("Login successful. Token is stored in cookie.");
+        Map<String,String> responseMap = new HashMap<>();
+        responseMap.put("token", token);
+        return ResponseEntity.ok(responseMap);
     }
 
     public ResponseEntity<String> changePassword(Authentication authentication,

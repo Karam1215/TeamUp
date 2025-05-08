@@ -2,7 +2,7 @@ CREATE TABLE teams (
     team_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) UNIQUE NOT NULL,
     leader_id UUID NOT NULL,
-    ranking VARCHAR(50) CHECK (ranking IN ('beginner', 'medium', 'advanced', 'world-class')),
+    ranking VARCHAR(50) CHECK (ranking IN ('BEGINNER', 'MEDIUM', 'ADVANCED', 'WORLD_CLASS')),
     capacity INT NOT NULL CHECK (capacity > 0),  -- Team size
     preferred_start_time TIME NOT NULL, -- Start time preference (e.g., 18:00)
     preferred_end_time TIME NOT NULL,   -- End time preference (e.g., 21:00)

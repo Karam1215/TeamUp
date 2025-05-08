@@ -4,7 +4,10 @@ package com.karam.teamup.player.mappers;
 import com.karam.teamup.player.dto.PlayerProfileDTO;
 import com.karam.teamup.player.dto.UpdatePlayerProfileDTO;
 import com.karam.teamup.player.entities.Player;
+import com.karam.teamup.player.entities.Team;
 import org.mapstruct.*;
+
+import java.util.UUID;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING,
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -18,5 +21,6 @@ public interface PlayerProfileMapper {
     @Mapping(target = "sport", source = "sport")
     void updatePlayerProfile(@MappingTarget Player player, UpdatePlayerProfileDTO updatePlayerProfileDTO);
 
+    @Mapping(target = "teamId", source = "team.id")
     PlayerProfileDTO toDTO(Player player);
 }

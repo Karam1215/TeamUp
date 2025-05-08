@@ -1,8 +1,6 @@
 package com.karam.teamup.player.entities;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.karam.teamup.player.converter.JsonbUUIDListConverter;
-import com.karam.teamup.player.converter.TeamRankingConverter;
 import com.karam.teamup.player.enums.TeamRanking;
 import io.hypersistence.utils.hibernate.type.json.JsonBinaryType;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -11,7 +9,10 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.Type;
@@ -57,8 +58,8 @@ public class Team {
     private int capacity;
 
     @Column(name = "ranking")
+    @Enumerated(EnumType.STRING)
     @NotNull(message = "Ranking must be specified")
-    @Convert(converter = TeamRankingConverter.class)
     @Schema(description = "Team skill level", example = "medium")
     private TeamRanking ranking;
 

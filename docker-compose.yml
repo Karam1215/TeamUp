@@ -114,7 +114,7 @@ services:
       context: .
       dockerfile: Authentication-Service/Dockerfile
     ports:
-      - "8082"
+      - "8082:8082"
     depends_on:
       - auth-db
       - eureka

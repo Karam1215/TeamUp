@@ -49,10 +49,10 @@ logger = logging.getLogger(__name__)
 
 # Constants and Thread Safety
 RANKING_WEIGHTS = {
-    'beginner': 0,
-    'medium': 1,
-    'advanced': 2,
-    'world-class': 3
+    'BEGINNER': 0,
+    'MEDIUM': 1,
+    'ADVANCED': 2,
+    'WORLD_CLASS': 3
 }
 faiss_index = faiss.IndexFlatL2(3)  # 3 dimensions: ranking, start_time, end_time
 faiss_lock = threading.Lock()
