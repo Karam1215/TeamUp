@@ -12,6 +12,19 @@ services:
     networks:
       - micro-net
 
+  chat-db:
+    image: postgres:latest
+    ports:
+      - "5444:5432"
+    environment:
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./chat-service/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    networks:
+      - micro-net
+
+
   flyway:
     image: flyway/flyway
     environment:
@@ -164,6 +177,23 @@ services:
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=postgres
 
+  chat-service:
+    build:
+      context: .
+      dockerfile: chat-service/Dockerfile
+    ports:
+      - "8090:8090"
+    depends_on:
+      - chat-db
+      - eureka
+    networks:
+      - micro-net
+    environment:
+#      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://chat-db:5432/chat_db
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+
   match-making-service:
     build:
       context: ./match-making
@@ -174,6 +204,7 @@ services:
       - ./match-making:/app
     depends_on:
       - matchmaking-db
+      - chat-service
     networks:
       - micro-net
     environment:

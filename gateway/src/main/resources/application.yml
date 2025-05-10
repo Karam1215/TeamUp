@@ -26,6 +26,18 @@ spring:
          filters:
            - AuthenticationFilter
 
+       - id: chat-service-rest
+         uri: lb://CHAT-SERVICE
+         predicates:
+           - Path=/api/v1/chat/**
+         filters:
+           - AuthenticationFilter
+
+       - id: chat-service-websocket
+         uri: ws://chat-service:8090
+         predicates:
+           - Path=/ws/**
+
  application:
    name: api-gateway
 

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="SqlDialectMappings">
+    <file url="file://$PROJECT_DIR$/chat-service/src/main/resources/db/migration/V2__CREAT_CHAT_MESSAGE_TABLE.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/player-service/docker-entrypoint-initdb.d/init.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/venue-service/src/main/resources/db/migration/V1__CREATE_VENUES_TABLE.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/venue-service/src/main/resources/db/migration/V3__CREATE_FIELD_AVIALABELITY_TABLE.sql" dialect="PostgreSQL" />

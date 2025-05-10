@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebSocket Chat Test</title>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+</head>
+<body>
+  <h2>Chat</h2>
+  <input type="text" id="messageInput" placeholder="Type message..." />
+  <button onclick="sendMessage()">Send</button>
+  <div id="chatBox"></div>
+
+  <script>
+    const roomId = 'c2734345-e897-4f25-bc39-be83af5f947b';
+    const username = 'karam';
+    const teamId = 'a28e968d-46df-49d1-af3c-c5fdd1f532f9';
+
+    const socket = new WebSocket('ws://localhost:8090/ws');
+    const stompClient = Stomp.over(socket);
+    stompClient.debug = null;
+
+    stompClient.connect({}, function (frame) {
+      console.log('Connected: ' + frame);
+
+      stompClient.subscribe('/topic/chat/' + roomId, function (message) {
+        const msg = JSON.parse(message.body);
+        document.getElementById('chatBox').innerHTML += `<div><b>${msg.senderUsername}:</b> ${msg.message}</div>`;
+      });
+    });
+
+    function sendMessage() {
+      const msgText = document.getElementById('messageInput').value;
+      stompClient.send('/app/chat/send/' + roomId, {}, JSON.stringify({
+        chatRoomId: roomId,
+        senderTeamId: teamId,
+        senderUsername: username,
+        message: msgText
+      }));
+    }
+  </script>
+</body>
+</html>

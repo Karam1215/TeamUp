@@ -10,9 +10,11 @@ from datetime import datetime, timedelta
 import faiss
 import json
 import numpy as np
+import requests
 from flasgger import Swagger, swag_from
 
 DB_URL = "postgresql+psycopg2://postgres:postgres@matchmaking-db:5432/matches_db"
+CHAT_SERVICE_URL = "http://chat-service:8090/api/v1/chat/create"
 engine = create_engine(DB_URL)
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
@@ -252,9 +254,14 @@ def join_match():
             abort(400, description="Cannot join own request")
 
         # Create match
-        session.execute(text("""
-            INSERT INTO matches (creator_team_id, joined_team_id, start_time, end_time, day, venues_id)
-            VALUES (:creator, :joined, :start_time, :end_time, :day, :venues)
+        result = session.execute(text("""
+            INSERT INTO matches (
+                creator_team_id, joined_team_id, start_time, end_time, day, venues_id
+            )
+            VALUES (
+                :creator, :joined, :start_time, :end_time, :day, :venues
+            )
+            RETURNING match_id
         """), {
             "creator": str(request_row.team_id),
             "joined": str(team_b_id),
@@ -264,13 +271,33 @@ def join_match():
             "venues": json.dumps(request_row.preferred_venues)
         })
 
+        match_id = result.scalar()  # fetch match_id here
+
         # Update statuses
         request_row.status = 'matched'
         session.query(MatchRequest).filter_by(team_id=team_b_id).update({'status': 'matched'})
         session.commit()
         rebuild_faiss_index()
 
-        return jsonify({"message": "Match created successfully"})
+        # Send a request to the chat service to create a chat room for the match
+        chat_room_data = {
+            'match_id': str(match_id),
+            'team_a_id': str(request_row.team_id),
+            'team_b_id': str(team_b_id),
+            'day': str(request_row.day),
+            'start_time':str(request_row.start_time),
+            'end_time':str(request_row.end_time),
+        }
+
+        # Send the chat room creation request
+        print('sending post req')
+        chat_response = requests.post(CHAT_SERVICE_URL, json=chat_room_data)
+
+        if chat_response.status_code != 200:
+            logger.error(f"Failed to create chat room: {chat_response.text}")
+            return jsonify({"error": "Match created but failed to create chat room"}), 500
+
+        return jsonify({"message": "Match created successfully and chat room created"})
 
     except Exception as e:
         session.rollback()

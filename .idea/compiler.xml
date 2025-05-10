@@ -5,11 +5,14 @@
       <directory url="file://$PROJECT_DIR$/team-service/src/main/resources/archetype-resources" includeSubdirectories="true" />
     </excludeFromCompile>
     <annotationProcessing>
-      <profile default="true" name="Default" enabled="true" />
+      <profile default="true" name="Default" enabled="true">
+        <processorPath useClasspath="false" />
+      </profile>
       <profile name="Maven default annotation processors profile" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <module name="chat-service" />
         <module name="player-service" />
         <module name="Authentication-Service" />
         <module name="eureka-server" />
@@ -17,16 +20,12 @@
         <module name="apigatway" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="match-service" target="21" />
-      <module name="service-registry" target="21" />
-      <module name="team-service" target="21" />
-    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="Authentication-Service" options="" />
       <module name="apigatway" options="" />
+      <module name="chat-service" options="" />
       <module name="eureka-server" options="" />
       <module name="player-service" options="" />
       <module name="venue-service" options="" />
